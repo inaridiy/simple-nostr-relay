@@ -4,5 +4,8 @@
   },
   "imports": {
     "hono": "https://deno.land/x/hono@v4.3.7/mod.ts"
+  },
+  "fmt": {
+    "lineWidth": 120
   }
 }
