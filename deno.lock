@@ -1,6 +1,7 @@
 {
   "version": "3",
   "redirects": {
+    "https://deno.land/x/hono/helper.ts": "https://deno.land/x/hono@v4.3.7/helper.ts",
     "https://deno.land/x/hono/mod.ts": "https://deno.land/x/hono@v4.3.7/mod.ts"
   },
   "remote": {
