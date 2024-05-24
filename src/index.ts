@@ -6,12 +6,12 @@ const app = new Hono();
 const port = 3000;
 
 app.use(async (c, next) => {
-	c.set("db", db);
-	await next();
+  c.set("db", db);
+  await next();
 });
 
 app.get("/", (c) => {
-	return c.text("Hello Hono!");
+  return c.text("Hello Hono!");
 });
 
 serve({ fetch: app.fetch, port });
