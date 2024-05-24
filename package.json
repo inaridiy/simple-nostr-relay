@@ -1,6 +1,13 @@
 {
+  "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts"
+    "dev": "tsx watch src/index.ts",
+    "format": "biome format . --write",
+    "lint": "biome check .",
+    "lint:fix": "pnpm lint --apply",
+    "lint:repo": "sherif",
+    "preinstall": "npx only-allow pnpm",
+    "prepare": "pnpm simple-git-hooks"
   },
   "dependencies": {
     "@hono/node-server": "^1.11.1",
@@ -13,6 +20,11 @@
     "@types/better-sqlite3": "^7.6.10",
     "@types/node": "^20.11.17",
     "drizzle-kit": "^0.21.4",
-    "tsx": "^4.7.1"
+    "simple-git-hooks": "^2.11.1",
+    "sherif": "^0.8.4",
+    "tsx": "^4.11.0"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "pnpm format && pnpm lint:fix"
   }
 }

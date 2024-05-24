@@ -33,8 +33,14 @@ importers:
       drizzle-kit:
         specifier: ^0.21.4
         version: 0.21.4
+      sherif:
+        specifier: ^0.8.4
+        version: 0.8.4
+      simple-git-hooks:
+        specifier: ^2.11.1
+        version: 2.11.1
       tsx:
-        specifier: ^4.7.1
+        specifier: ^4.11.0
         version: 4.11.0
 
 packages:
@@ -843,11 +849,49 @@ packages:
     engines: {node: '>=10'}
     hasBin: true
 
+  sherif-darwin-arm64@0.8.4:
+    resolution: {integrity: sha512-mFJO9BjwjXnzn7UQ0moLyJzDWu68g71E1jNKujkuS8a4UQ8jV2O6gosOqfqPMHLLiZjZwuVZNnp59ecqP4rVpg==}
+    cpu: [arm64]
+    os: [darwin]
+
+  sherif-darwin-x64@0.8.4:
+    resolution: {integrity: sha512-71keXqkH27FvN5q3OmddS7FXaAVk0iBXGlfZhsuuNSR00CnSndM+AS8ibUH2okvF55HdPK6x6VovoEG3PvqCmw==}
+    cpu: [x64]
+    os: [darwin]
+
+  sherif-linux-arm64@0.8.4:
+    resolution: {integrity: sha512-hQwFHQ6cGDOkKSa1zuEAc8WIsSgY0a4MFXEiHIPfRbJdE+leDcAVDovvpPIQZRUgbSe96mQ5QJg5fw52+eySrw==}
+    cpu: [arm64]
+    os: [linux]
+
+  sherif-linux-x64@0.8.4:
+    resolution: {integrity: sha512-S2BK9YLc12JMxg8ODIcceRW7Y4rmgrIEzUBOqp6NSeOz4Wq/34YdtimNRHzwrDOgjTpgUA/pt+TwPsGPXr+gNA==}
+    cpu: [x64]
+    os: [linux]
+
+  sherif-windows-arm64@0.8.4:
+    resolution: {integrity: sha512-9IBeX13AeCQ9ETRqfGR7GQqcyRxu4jlXyO7TNQVKU/kBrMjWjYYic/VKwHB37q0xealXUNmB9nD08hfMmdnidg==}
+    cpu: [arm64]
+    os: [win32]
+
+  sherif-windows-x64@0.8.4:
+    resolution: {integrity: sha512-PR1tjnCLxcdYaC8FRM3K6ldIwaJDEJn0tOt6e2V6R7OFMDwF8CJOSq24RzGgSmJRBFtlLqU94sXTDPfUCR0YPw==}
+    cpu: [x64]
+    os: [win32]
+
+  sherif@0.8.4:
+    resolution: {integrity: sha512-L2tNE60i5gRNe5eFNSjUAqt2rCIbKj9jp/50zCfsw8bSBX6noHamR7FDhaecyrNBk6ZgGEEAjxGe4C6iqelwZw==}
+    hasBin: true
+
   simple-concat@1.0.1:
     resolution: {integrity: sha512-cSFtAPtRhljv69IK0hTVZQ+OfE9nePi/rtJmw5UjHeVyVroEqJXP1sFztKUy1qU+xvz3u/sfYJLa947b7nAN2Q==}
 
   simple-get@4.0.1:
     resolution: {integrity: sha512-brv7p5WgH0jmQJr1ZDDfKDOSeWWg+OVypG99A/5vYGPqJ6pxiaHLy8nxtFjBA7oMa01ebA9gfh1uMCFqOuXxvA==}
+
+  simple-git-hooks@2.11.1:
+    resolution: {integrity: sha512-tgqwPUMDcNDhuf1Xf6KTUsyeqGdgKMhzaH4PAZZuzguOgTl5uuyeYe/8mWgAr6IBxB5V06uqEf6Dy37gIWDtDg==}
+    hasBin: true
 
   sisteransi@1.0.5:
     resolution: {integrity: sha512-bLGGlR1QxBcynn2d5YmDX4MGjlZvy2MRBDRNHLJ8VI6l6+9FUiyTFNJ0IveOSP0bcXgVDPRcfGqA0pjaqUpfVg==}
@@ -1513,6 +1557,33 @@ snapshots:
 
   semver@7.6.2: {}
 
+  sherif-darwin-arm64@0.8.4:
+    optional: true
+
+  sherif-darwin-x64@0.8.4:
+    optional: true
+
+  sherif-linux-arm64@0.8.4:
+    optional: true
+
+  sherif-linux-x64@0.8.4:
+    optional: true
+
+  sherif-windows-arm64@0.8.4:
+    optional: true
+
+  sherif-windows-x64@0.8.4:
+    optional: true
+
+  sherif@0.8.4:
+    optionalDependencies:
+      sherif-darwin-arm64: 0.8.4
+      sherif-darwin-x64: 0.8.4
+      sherif-linux-arm64: 0.8.4
+      sherif-linux-x64: 0.8.4
+      sherif-windows-arm64: 0.8.4
+      sherif-windows-x64: 0.8.4
+
   simple-concat@1.0.1: {}
 
   simple-get@4.0.1:
@@ -1520,6 +1591,8 @@ snapshots:
       decompress-response: 6.0.0
       once: 1.4.0
       simple-concat: 1.0.1
+
+  simple-git-hooks@2.11.1: {}
 
   sisteransi@1.0.5: {}
 
