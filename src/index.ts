@@ -1,16 +1,28 @@
-import { serve } from '@hono/node-server'
-import { Hono } from 'hono'
+import { serve } from "@hono/node-server";
+import Database from "better-sqlite3";
+import { drizzle } from "drizzle-orm/better-sqlite3";
+import { Hono } from "hono";
+import * as schema from "./database";
 
-const app = new Hono()
+declare module "hono" {
+	interface ContextVariableMap {
+		db: ReturnType<typeof drizzle>;
+	}
+}
 
-app.get('/', (c) => {
-  return c.text('Hello Hono!')
-})
+const sqlite = new Database("database.sqlite");
+const db = drizzle(sqlite, { schema });
 
-const port = 3000
-console.log(`Server is running on port ${port}`)
+const app = new Hono();
+const port = 3000;
 
-serve({
-  fetch: app.fetch,
-  port
-})
+app.use(async (c, next) => {
+	c.set("db", db);
+	await next();
+});
+
+app.get("/", (c) => {
+	return c.text("Hello Hono!");
+});
+
+serve({ fetch: app.fetch, port });
