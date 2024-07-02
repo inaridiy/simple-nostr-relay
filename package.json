@@ -6,22 +6,27 @@
     "lint": "biome check .",
     "lint:fix": "pnpm lint --apply",
     "lint:repo": "sherif",
+    "migrate": "pnpm drizzle-kit generate && pnpm tsx scripts/migrate.ts",
     "preinstall": "npx only-allow pnpm",
     "prepare": "pnpm simple-git-hooks"
   },
   "dependencies": {
     "@hono/node-server": "^1.11.1",
+    "@hono/node-ws": "1.0.0",
     "better-sqlite3": "^10.0.0",
+    "bufferutil": "^4.0.8",
     "drizzle-orm": "^0.30.10",
-    "hono": "^4.3.11"
+    "hono": "^4.3.11",
+    "ws": "^8.17.0"
   },
   "devDependencies": {
     "@biomejs/biome": "1.7.3",
     "@types/better-sqlite3": "^7.6.10",
     "@types/node": "^20.11.17",
+    "@types/ws": "^8.5.10",
     "drizzle-kit": "^0.21.4",
-    "simple-git-hooks": "^2.11.1",
     "sherif": "^0.8.4",
+    "simple-git-hooks": "^2.11.1",
     "tsx": "^4.11.0"
   },
   "simple-git-hooks": {

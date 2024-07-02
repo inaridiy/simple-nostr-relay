@@ -17,7 +17,7 @@ export type SerializedEvent = [
   created_at: UnixTimestamp, // created_at, as a number
   kind: number, // kind, as a number
   tags: [string, ...string[]][], // tags, as an array of arrays of non-null strings
-  content: string // content, as a string
+  content: string, // content, as a string
 ];
 
 export type SubscriptionFilter = Partial<{
@@ -36,13 +36,7 @@ export type ClientToRelayPayloads = {
   CLOSE: ["CLOSE", subscriptionId: string];
 };
 
-type ReasonMessagePrefix =
-  | "duplicate"
-  | "pow"
-  | "blocked"
-  | "rate-limited"
-  | "invalid"
-  | "error";
+type ReasonMessagePrefix = "duplicate" | "pow" | "blocked" | "rate-limited" | "invalid" | "error";
 type ReasonMessage = `${ReasonMessagePrefix}: ${string}`;
 
 export type RelayToClientPayloads = {
