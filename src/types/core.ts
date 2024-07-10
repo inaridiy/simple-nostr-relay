@@ -46,6 +46,7 @@ export type ClientToRelayPayloads = {
   REQ: ["REQ", subscriptionId: string, ...SubscriptionFilter[]];
   CLOSE: ["CLOSE", subscriptionId: string];
 };
+export type ClientToRelayPayload = ValueOf<ClientToRelayPayloads>;
 
 export const ReasonMessagePrefix = {
   DUPLICATE: "duplicate",
