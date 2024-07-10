@@ -1,3 +1,5 @@
+import type { ValueOf } from "./utils";
+
 export type Hex = string;
 export type UnixTimestamp = number;
 
@@ -11,13 +13,22 @@ export type Event = {
   sig: Hex; // 64-bytes lowercase hex of the signature of the sha256 hash of the serialized event data, which is the same as the "id" field
 };
 
+export const EventType = {
+  REGULAR: "REGULAR",
+  REPLACEABLE: "REPLACEABLE",
+  EPHEMERAL: "EPHEMERAL",
+  PARAMETERIZED_REPLACEBLE: "PARAMETERIZED_REPLACEBLE",
+} as const;
+
+export type EventType = ValueOf<typeof EventType>;
+
 export type SerializedEvent = [
   0,
   pubkey: Hex, // pubkey, as a lowercase hex string
   created_at: UnixTimestamp, // created_at, as a number
   kind: number, // kind, as a number
   tags: [string, ...string[]][], // tags, as an array of arrays of non-null strings
-  content: string, // content, as a string
+  content: string // content, as a string
 ];
 
 export type SubscriptionFilter = Partial<{
@@ -36,13 +47,23 @@ export type ClientToRelayPayloads = {
   CLOSE: ["CLOSE", subscriptionId: string];
 };
 
-type ReasonMessagePrefix = "duplicate" | "pow" | "blocked" | "rate-limited" | "invalid" | "error";
-type ReasonMessage = `${ReasonMessagePrefix}: ${string}`;
+export const ReasonMessagePrefix = {
+  DUPLICATE: "duplicate",
+  POW: "pow",
+  BLOCKED: "blocked",
+  RATE_LIMITED: "rate-limited",
+  INVALID: "invalid",
+  ERROR: "error",
+};
+export type ReasonMessagePrefix = ValueOf<typeof ReasonMessagePrefix>;
+
+export type ReasonMessage = `${ReasonMessagePrefix}: ${string}`;
+export type HumanReadableReasonMessage = string;
 
 export type RelayToClientPayloads = {
   EVENT: ["EVENT", subscriptionId: string, event: Event];
   OK: ["OK", eventId: Hex, isOk: boolean, message: ReasonMessage];
   EOSE: ["EOSE", subscriptionId: string];
   CLOSED: ["CLOSED", subscriptionId: ReasonMessage];
-  NOTICE: ["NOTICE", message: string];
+  NOTICE: ["NOTICE", message: HumanReadableReasonMessage];
 };
