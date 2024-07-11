@@ -12,8 +12,8 @@ importers:
         specifier: ^1.11.1
         version: 1.11.1
       '@hono/node-ws':
-        specifier: 1.0.0
-        version: 1.0.0(@hono/node-server@1.11.1)(bufferutil@4.0.8)
+        specifier: 1.0.2
+        version: 1.0.2(@hono/node-server@1.11.1)(bufferutil@4.0.8)
       '@noble/curves':
         specifier: ^1.4.2
         version: 1.4.2
@@ -543,8 +543,8 @@ packages:
     resolution: {integrity: sha512-GW1Iomhmm1o4Z+X57xGby8A35Cu9UZLL7pSMdqDBkD99U5cywff8F+8hLk5aBTzNubnsFAvWQ/fZjNwPsEn9lA==}
     engines: {node: '>=18.14.1'}
 
-  '@hono/node-ws@1.0.0':
-    resolution: {integrity: sha512-kH66I6x2B8gIcpIhVi6V2DhE5FsC749dJafjaFfMOKdBq9vWAtNSE1XJ3dFg8QAlR4wdUQB4GDtQCFvFG7dUbA==}
+  '@hono/node-ws@1.0.2':
+    resolution: {integrity: sha512-+31N3u00ZBVYVihN1lnlVEY/liCKWxIaXBJgYOzxuYm+0eFW44AXKwaIiSP/rkscoJoAZwgwqZtOqymWFIZIPA==}
     engines: {node: '>=18.14.1'}
     peerDependencies:
       '@hono/node-server': ^1.11.1
@@ -1274,7 +1274,7 @@ snapshots:
 
   '@hono/node-server@1.11.1': {}
 
-  '@hono/node-ws@1.0.0(@hono/node-server@1.11.1)(bufferutil@4.0.8)':
+  '@hono/node-ws@1.0.2(@hono/node-server@1.11.1)(bufferutil@4.0.8)':
     dependencies:
       '@hono/node-server': 1.11.1
       ws: 8.17.0(bufferutil@4.0.8)

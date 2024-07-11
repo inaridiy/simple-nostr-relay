@@ -8,18 +8,26 @@ const Hex64BytesSchema = v.pipe(HexSchema, v.length(128));
 
 const UnixTimestampSchema = v.number();
 
+const EventTagSchema = v.custom<Event["tags"][number]>((input) => {
+  if (!Array.isArray(input)) return false;
+  if (input.length === 0) return false;
+  if (!["e", "p"].includes(input[0])) return true; // ignore unknown tags
+  const result = v.safeParse(Hex32BytesSchema, input[1]);
+  return result.success;
+});
+
 const EventSchema = v.object({
   id: Hex32BytesSchema,
   pubkey: Hex32BytesSchema,
   created_at: UnixTimestampSchema,
   kind: v.number(),
-  tags: v.array(v.pipe(v.array(v.string()), v.minLength(1))),
+  tags: v.array(EventTagSchema),
   content: v.string(),
   sig: Hex64BytesSchema,
 });
 
 export const parseEvent = (event: unknown): Event => {
-  return v.parse(EventSchema, event) as Event; // [string, ...string[]] is not supported by valibot. maybe
+  return v.parse(EventSchema, event);
 };
 
 const SubscriptionFilterSchema = v.intersect([
@@ -50,5 +58,5 @@ const ClientToRelayPayloadsSchema = v.union([
 ]);
 
 export const parseClientToRelayPayload = (payload: unknown): ClientToRelayPayload => {
-  return v.parse(ClientToRelayPayloadsSchema, payload) as ClientToRelayPayload;
+  return payload as ClientToRelayPayload;
 };

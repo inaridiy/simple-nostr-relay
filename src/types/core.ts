@@ -8,7 +8,7 @@ export type Event = {
   pubkey: Hex; // 32-bytes lowercase hex-encoded public key of the event creator
   created_at: UnixTimestamp; // unix timestamp in seconds
   kind: number; // integer between 0 and 65535
-  tags: [string, ...string[]][];
+  tags: ([string, string] | [string, string, string])[];
   content: string; //arbitrary string
   sig: Hex; // 64-bytes lowercase hex of the signature of the sha256 hash of the serialized event data, which is the same as the "id" field
 };
@@ -59,7 +59,7 @@ export const ReasonMessagePrefix = {
 } as const;
 export type ReasonMessagePrefix = ValueOf<typeof ReasonMessagePrefix>;
 
-export type ReasonMessage = `${ReasonMessagePrefix}: ${string}`;
+export type ReasonMessage = `${ReasonMessagePrefix}: ${string}` | "";
 export type HumanReadableReasonMessage = string;
 
 export type RelayToClientPayloads = {

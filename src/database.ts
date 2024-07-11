@@ -5,13 +5,13 @@ export const events = sqliteTable(
   "events",
   {
     id: text("id").primaryKey(),
-    kind: integer("kind"),
-    author: text("author"),
-    hidden: integer("hidden", { mode: "boolean" }),
-    content: text("content"),
-    first_seen: integer("first_seen", { mode: "timestamp" }),
-    created_at: integer("created_at", { mode: "timestamp" }),
-    expires_at: integer("expires_at", { mode: "timestamp" }),
+    kind: integer("kind").notNull(),
+    author: text("author").notNull(),
+    sig: text("sig").notNull(),
+    hidden: integer("hidden", { mode: "boolean" }).notNull(),
+    content: text("content").notNull(),
+    first_seen: integer("first_seen", { mode: "timestamp" }).notNull(),
+    created_at: integer("created_at", { mode: "timestamp" }).notNull(),
   },
   (table) => ({
     kindIdx: index("kind_idx").on(table.kind),
@@ -21,7 +21,6 @@ export const events = sqliteTable(
     kindAuthorIdx: index("kind_author_idx").on(table.kind, table.author),
     authorCreatedAtIdx: index("author_created_at_idx").on(table.author, table.created_at),
     authorKindIdx: index("author_kind_idx").on(table.author, table.kind),
-    expiresAtIdx: index("expires_at_idx").on(table.expires_at),
   }),
 );
 
@@ -29,9 +28,10 @@ export const tags = sqliteTable(
   "tags",
   {
     id: text("id").primaryKey(),
-    eventId: text("event_id"),
-    name: text("name"),
-    value: text("value"),
+    eventId: text("event_id").notNull(),
+    name: text("name").notNull(),
+    value: text("value").notNull(),
+    recomendedRelay: text("recomended_relay"),
   },
   (table) => ({
     eventIdIdx: index("event_id_idx").on(table.eventId),
