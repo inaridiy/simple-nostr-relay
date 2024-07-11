@@ -67,55 +67,37 @@
       "indexes": {
         "kind_idx": {
           "name": "kind_idx",
-          "columns": [
-            "kind"
-          ],
+          "columns": ["kind"],
           "isUnique": false
         },
         "author_idx": {
           "name": "author_idx",
-          "columns": [
-            "author"
-          ],
+          "columns": ["author"],
           "isUnique": false
         },
         "created_at_idx": {
           "name": "created_at_idx",
-          "columns": [
-            "created_at"
-          ],
+          "columns": ["created_at"],
           "isUnique": false
         },
         "kind_composite_idx": {
           "name": "kind_composite_idx",
-          "columns": [
-            "kind",
-            "created_at"
-          ],
+          "columns": ["kind", "created_at"],
           "isUnique": false
         },
         "kind_author_idx": {
           "name": "kind_author_idx",
-          "columns": [
-            "kind",
-            "author"
-          ],
+          "columns": ["kind", "author"],
           "isUnique": false
         },
         "author_created_at_idx": {
           "name": "author_created_at_idx",
-          "columns": [
-            "author",
-            "created_at"
-          ],
+          "columns": ["author", "created_at"],
           "isUnique": false
         },
         "author_kind_idx": {
           "name": "author_kind_idx",
-          "columns": [
-            "author",
-            "kind"
-          ],
+          "columns": ["author", "kind"],
           "isUnique": false
         }
       },
@@ -165,34 +147,22 @@
       "indexes": {
         "event_id_idx": {
           "name": "event_id_idx",
-          "columns": [
-            "event_id"
-          ],
+          "columns": ["event_id"],
           "isUnique": false
         },
         "tag_value_idx": {
           "name": "tag_value_idx",
-          "columns": [
-            "value"
-          ],
+          "columns": ["value"],
           "isUnique": false
         },
         "tag_composite_idx": {
           "name": "tag_composite_idx",
-          "columns": [
-            "event_id",
-            "name",
-            "value"
-          ],
+          "columns": ["event_id", "name", "value"],
           "isUnique": false
         },
         "tag_name_event_id_idx": {
           "name": "tag_name_event_id_idx",
-          "columns": [
-            "name",
-            "event_id",
-            "value"
-          ],
+          "columns": ["name", "event_id", "value"],
           "isUnique": false
         }
       },
