@@ -28,7 +28,7 @@ export type SerializedEvent = [
   created_at: UnixTimestamp, // created_at, as a number
   kind: number, // kind, as a number
   tags: [string, ...string[]][], // tags, as an array of arrays of non-null strings
-  content: string // content, as a string
+  content: string, // content, as a string
 ];
 
 export type SubscriptionFilter = Partial<{
@@ -46,7 +46,8 @@ export type ClientToRelayPayloads = {
   REQ: ["REQ", subscriptionId: string, ...SubscriptionFilter[]];
   CLOSE: ["CLOSE", subscriptionId: string];
 };
-export type ClientToRelayPayload = ValueOf<ClientToRelayPayloads>;
+
+export type ClientToRelayPayload<T extends keyof ClientToRelayPayloads = keyof ClientToRelayPayloads> = ClientToRelayPayloads[T];
 
 export const ReasonMessagePrefix = {
   DUPLICATE: "duplicate",
@@ -55,7 +56,7 @@ export const ReasonMessagePrefix = {
   RATE_LIMITED: "rate-limited",
   INVALID: "invalid",
   ERROR: "error",
-};
+} as const;
 export type ReasonMessagePrefix = ValueOf<typeof ReasonMessagePrefix>;
 
 export type ReasonMessage = `${ReasonMessagePrefix}: ${string}`;
@@ -68,3 +69,4 @@ export type RelayToClientPayloads = {
   CLOSED: ["CLOSED", subscriptionId: ReasonMessage];
   NOTICE: ["NOTICE", message: HumanReadableReasonMessage];
 };
+export type RelayToClientPayload<T extends keyof RelayToClientPayloads = keyof RelayToClientPayloads> = RelayToClientPayloads[T];

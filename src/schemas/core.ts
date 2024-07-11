@@ -1,9 +1,5 @@
 import * as v from "valibot";
-import type {
-  ClientToRelayPayload,
-  Event,
-  SubscriptionFilter,
-} from "../types/core";
+import type { ClientToRelayPayload, Event, SubscriptionFilter } from "../types/core";
 
 const HexSchema = v.pipe(v.string(), v.hexadecimal());
 
@@ -35,17 +31,15 @@ const SubscriptionFilterSchema = v.intersect([
       since: UnixTimestampSchema,
       until: UnixTimestampSchema,
       limit: v.number(),
-    })
+    }),
   ),
   v.record(
     v.custom<`#${string}`>((v) => typeof v === "string" && v.startsWith("#")),
-    v.array(v.string())
+    v.array(v.string()),
   ),
 ]);
 
-export const parseSubscriptionFilter = (
-  filter: unknown
-): SubscriptionFilter => {
+export const parseSubscriptionFilter = (filter: unknown): SubscriptionFilter => {
   return v.parse(SubscriptionFilterSchema, filter);
 };
 
@@ -55,8 +49,6 @@ const ClientToRelayPayloadsSchema = v.union([
   v.tuple([v.literal("CLOSE"), v.string()]),
 ]);
 
-export const parseClientToRelayPayload = (
-  payload: unknown
-): ClientToRelayPayload => {
+export const parseClientToRelayPayload = (payload: unknown): ClientToRelayPayload => {
   return v.parse(ClientToRelayPayloadsSchema, payload) as ClientToRelayPayload;
 };
