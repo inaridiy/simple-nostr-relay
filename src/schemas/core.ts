@@ -30,22 +30,19 @@ export const parseEvent = (event: unknown): Event => {
   return v.parse(EventSchema, event);
 };
 
-const SubscriptionFilterSchema = v.intersect([
-  v.partial(
-    v.object({
+const SubscriptionFilterSchema = v.partial(
+  v.objectWithRest(
+    {
       ids: v.array(Hex32BytesSchema),
       authors: v.array(Hex32BytesSchema),
       kinds: v.array(v.number()),
       since: UnixTimestampSchema,
       until: UnixTimestampSchema,
       limit: v.number(),
-    }),
-  ),
-  v.record(
-    v.custom<`#${string}`>((v) => typeof v === "string" && v.startsWith("#")),
+    },
     v.array(v.string()),
   ),
-]);
+);
 
 export const parseSubscriptionFilter = (filter: unknown): SubscriptionFilter => {
   return v.parse(SubscriptionFilterSchema, filter);
@@ -53,10 +50,10 @@ export const parseSubscriptionFilter = (filter: unknown): SubscriptionFilter => 
 
 const ClientToRelayPayloadsSchema = v.union([
   v.tuple([v.literal("EVENT"), EventSchema]),
-  v.tuple([v.literal("REQ"), v.string(), SubscriptionFilterSchema]),
+  v.tupleWithRest([v.literal("REQ"), v.string()], SubscriptionFilterSchema),
   v.tuple([v.literal("CLOSE"), v.string()]),
 ]);
 
 export const parseClientToRelayPayload = (payload: unknown): ClientToRelayPayload => {
-  return payload as ClientToRelayPayload;
+  return v.parse(ClientToRelayPayloadsSchema, payload);
 };
