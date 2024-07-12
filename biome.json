@@ -1,6 +1,6 @@
 {
   "files": {
-    "ignore": ["tsconfig.json"]
+    "ignore": ["src/generated"]
   },
   "formatter": {
     "enabled": true,

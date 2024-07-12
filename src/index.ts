@@ -1,3 +1,9 @@
+import * as schema from "@/database";
+import { isEventMatchSomeFilters } from "@/nostr/isEventMatchSomeFilters";
+import { verifyEvent } from "@/nostr/verifyEvent";
+import { createRepository } from "@/repository";
+import type { ClientToRelayPayload, Event, RelayToClientPayload, SubscriptionFilter } from "@/types/core";
+import { validateClientToRelayPayload } from "@/validators/validateClientToRelayPayload";
 import { serve } from "@hono/node-server";
 import { createNodeWebSocket } from "@hono/node-ws";
 import Database from "better-sqlite3";
@@ -5,12 +11,6 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import type { WSContext } from "hono/ws";
-import * as schema from "./database";
-import { isEventMatchSomeFilters } from "./nostr/isEventMatchSomeFilters";
-import { verifyEvent } from "./nostr/verifyEvent";
-import { createRepository } from "./repository";
-import { parseClientToRelayPayload } from "./schemas/core";
-import type { ClientToRelayPayload, Event, RelayToClientPayload, SubscriptionFilter } from "./types/core";
 
 const app = new Hono();
 const port = 3000;
@@ -85,8 +85,10 @@ app.get(
 
       onMessage(evt, ws) {
         try {
-          const payload = parseClientToRelayPayload(JSON.parse(evt.data as string));
+          const result = validateClientToRelayPayload(JSON.parse(evt.data as string));
+          if (!result.success) return;
 
+          const { data: payload } = result;
           if (payload[0] === "EVENT") processEvent(ws, payload);
           if (payload[0] === "REQ") processReq(ws, payload);
           if (payload[0] === "CLOSE") closeSubscription(ws, payload);
