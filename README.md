@@ -1,3 +1,6 @@
+# Honostr
+Simplest nostr relay impl
+
 ```
 npm install
 npm run dev
