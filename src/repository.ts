@@ -1,6 +1,6 @@
-import { type SQL, type SQLWrapper, and, desc, eq, gte, inArray, lte, or } from "drizzle-orm";
+import { type SQL, type SQLWrapper, and, desc, eq, gte, inArray, like, lte, or, sql } from "drizzle-orm";
 import type { BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
-import { union } from "drizzle-orm/sqlite-core";
+import { type SQLiteColumn, union } from "drizzle-orm/sqlite-core";
 import { uuidv7 } from "uuidv7";
 import * as schema from "./database";
 import type { Event, SubscriptionFilter } from "./types/core";
@@ -36,11 +36,18 @@ const aggregateEvent = (rows: JoinedRow[]): Event[] => {
   return Object.values(aggregated);
 };
 
-const buildQuery = (filter: SubscriptionFilter): SQL | undefined => {
-  const queries: SQLWrapper[] = [];
+const helper = (column: SQLiteColumn, values: string[]) =>
+  or(...values.map((value) => (value.length === 64 ? eq(column, value) : like(column, `${value}%`))));
 
-  if (filter.ids) queries.push(inArray(schema.events.id, filter.ids));
-  if (filter.authors) queries.push(inArray(schema.events.author, filter.authors));
+const buildQuery = (filter: SubscriptionFilter): SQL | undefined => {
+  const queries: (SQLWrapper | undefined)[] = [];
+
+  if (filter.ids)
+    if (filter.ids.length > 0) queries.push(helper(schema.events.id, filter.ids));
+    else queries.push(sql`1 = 0`);
+  if (filter.authors)
+    if (filter.authors.length > 0) queries.push(helper(schema.events.author, filter.authors));
+    else queries.push(sql`1 = 0`);
   if (filter.kinds) queries.push(inArray(schema.events.kind, filter.kinds));
   if (filter.since) queries.push(gte(schema.events.created_at, new Date(filter.since * 1000)));
   if (filter.until) queries.push(lte(schema.events.created_at, new Date(filter.until * 1000)));
@@ -48,7 +55,7 @@ const buildQuery = (filter: SubscriptionFilter): SQL | undefined => {
   const tagQueries = Object.entries(filter)
     .filter(([key]) => key.startsWith("#"))
     .map(([tag, values]) => and(eq(schema.tags.name, tag.slice(1)), inArray(schema.tags.value, values as string[])));
-  if (tagQueries.length > 0) queries.push(or(...tagQueries) as SQLWrapper);
+  if (tagQueries.length > 0) queries.push(or(...tagQueries));
 
   return and(...queries);
 };
