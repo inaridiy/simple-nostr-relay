@@ -130,7 +130,7 @@ export type SerializedEvent = [
   /**
    * @description content, as a string
    */
-  content: string
+  content: string,
 ];
 
 /**
@@ -187,9 +187,7 @@ export type ClientToRelayPayloads = {
   CLOSE: ["CLOSE", subscriptionId: string];
 };
 
-export type ClientToRelayPayload<
-  T extends keyof ClientToRelayPayloads = keyof ClientToRelayPayloads
-> = ClientToRelayPayloads[T];
+export type ClientToRelayPayload<T extends keyof ClientToRelayPayloads = keyof ClientToRelayPayloads> = ClientToRelayPayloads[T];
 
 /**
  * @description Reason Message Prefix Constants
@@ -221,6 +219,4 @@ export type RelayToClientPayloads = {
   NOTICE: ["NOTICE", message: HumanReadableReasonMessage];
 };
 
-export type RelayToClientPayload<
-  T extends keyof RelayToClientPayloads = keyof RelayToClientPayloads
-> = RelayToClientPayloads[T];
+export type RelayToClientPayload<T extends keyof RelayToClientPayloads = keyof RelayToClientPayloads> = RelayToClientPayloads[T];
