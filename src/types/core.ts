@@ -190,6 +190,10 @@ export type ClientToRelayPayloads = {
   EVENT: ["EVENT", event: Event];
   REQ: ["REQ", subscriptionId: string, ...SubscriptionFilter[]];
   CLOSE: ["CLOSE", subscriptionId: string];
+  /** @link https://github.com/nostr-protocol/nips/blob/master/42.md */
+  AUTH: ["AUTH", signedChallengeEvent: Event];
+  /** @link https://github.com/nostr-protocol/nips/blob/master/45.md */
+  COUNT: ["COUNT", subscriptionId: string, ...SubscriptionFilter[]];
 };
 
 export type ClientToRelayPayload<T extends keyof ClientToRelayPayloads = keyof ClientToRelayPayloads> = ClientToRelayPayloads[T];
@@ -222,6 +226,10 @@ export type RelayToClientPayloads = {
   CLOSED: ["CLOSED", subscriptionId: ReasonMessage];
   /** NOTICE payload: send human-readable error messages or other things to clients. */
   NOTICE: ["NOTICE", message: HumanReadableReasonMessage];
+  /** @link https://github.com/nostr-protocol/nips/blob/master/42.md */
+  AUTH: ["AUTH", challenge: string];
+  /** @link https://github.com/nostr-protocol/nips/blob/master/45.md */
+  COUNT: ["COUNT", subscriptionId: string, { count: number; approximate?: boolean }];
 };
 
 export type RelayToClientPayload<T extends keyof RelayToClientPayloads = keyof RelayToClientPayloads> = RelayToClientPayloads[T];
