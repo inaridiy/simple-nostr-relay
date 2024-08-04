@@ -1,4 +1,4 @@
-import { type SQL, type SQLWrapper, and, desc, eq, gte, inArray, like, lte, or, sql } from "drizzle-orm";
+import { type SQL, type SQLWrapper, and, count, desc, eq, gte, inArray, like, lte, or, sql } from "drizzle-orm";
 import type { BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
 import { type SQLiteColumn, union } from "drizzle-orm/sqlite-core";
 import { uuidv7 } from "uuidv7";
@@ -62,7 +62,6 @@ const buildQuery = (filter: SubscriptionFilter): SQL | undefined => {
 
 export const createRepository = (db: BetterSQLite3Database<typeof schema>) => ({
   saveEvent: async (event: Event): Promise<void> => {
-    console.log(new Date(event.created_at * 1000));
     const insertableEvent = {
       id: event.id,
       kind: event.kind,
@@ -85,6 +84,16 @@ export const createRepository = (db: BetterSQLite3Database<typeof schema>) => ({
       await tx.insert(schema.events).values(insertableEvent);
       await tx.insert(schema.tags).values(insertableTags);
     });
+  },
+  countEventsByFilters: async (filters: SubscriptionFilter[]): Promise<number> => {
+    if (filters.length === 0) return 0;
+    const result = await db
+      .select({ count: count(schema.events.id) })
+      .from(schema.events)
+      .leftJoin(schema.tags, eq(schema.events.id, schema.tags.eventId))
+      .where(or(...filters.map(buildQuery)))
+      .groupBy(schema.events.id);
+    return result[0]?.count ?? 0;
   },
   queryEventById: async (id: string): Promise<Event | null> => {
     const events = await db

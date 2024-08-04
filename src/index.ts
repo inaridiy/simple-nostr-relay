@@ -77,6 +77,12 @@ const processReq = async (ws: WSContext, payload: ClientToRelayPayload<"REQ">) =
   wsSendPayload(ws, ["EOSE", subscriptionId]);
 };
 
+const processCount = async (ws: WSContext, payload: ClientToRelayPayload<"COUNT">) => {
+  const [_, subscriptionId, ...filters] = payload;
+  const count = await repository.countEventsByFilters(filters);
+  wsSendPayload(ws, ["COUNT", subscriptionId, { count }]);
+};
+
 const closeSubscription = async (_ws: WSContext, payload: ClientToRelayPayload<"CLOSE">) => {
   const [_, subscriptionId] = payload;
   subscirptions.delete(subscriptionId);
@@ -99,6 +105,7 @@ app.get(
           if (payload[0] === "EVENT") processEvent(ws, payload);
           if (payload[0] === "REQ") processReq(ws, payload);
           if (payload[0] === "CLOSE") closeSubscription(ws, payload);
+          if (payload[0] === "COUNT") processCount(ws, payload);
         } catch (e) {
           console.log("error", evt.data, e);
         }
