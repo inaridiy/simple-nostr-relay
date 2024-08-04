@@ -175,6 +175,11 @@ export type SubscriptionFilter = Partial<{
    * @description maximum number of events relays SHOULD return in the initial query
    */
   limit: number;
+  /**
+   * @description natural language query string
+   * @link https://github.com/nostr-protocol/nips/blob/master/50.md
+   */
+  search: string;
 }>;
 
 /**
