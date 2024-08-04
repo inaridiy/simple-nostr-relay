@@ -3,6 +3,7 @@ import { isEventMatchSomeFilters } from "@/nostr/isEventMatchSomeFilters";
 import { verifyEvent } from "@/nostr/verifyEvent";
 import { createRepository } from "@/repository";
 import type { ClientToRelayPayload, Event, RelayToClientPayload, SubscriptionFilter } from "@/types/core";
+import type { RelayInfomaion } from "@/types/nip11";
 import { validateClientToRelayPayload } from "@/validators/validateClientToRelayPayload";
 import { serve } from "@hono/node-server";
 import { createNodeWebSocket } from "@hono/node-ws";
@@ -11,6 +12,16 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import type { WSContext } from "hono/ws";
+
+const infomation: RelayInfomaion = {
+  name: "Honostr Test Relay",
+  description: "Honostr Test Relay",
+  pubkey: "36d931a0c3e540393015c9ba9df8718b6259bf36180c9c4ef230ecc135c59c52",
+  contact: "inari@inaridiy.com",
+  supported_nips: [1, 2, 4, 9, 11],
+  software: "Honostr",
+  version: "0.0.0",
+};
 
 const app = new Hono();
 const port = 3000;
@@ -79,10 +90,6 @@ app.get(
   "/",
   upgradeWebSocket(() => {
     return {
-      onOpen: (ws) => {
-        console.log("ws opened");
-      },
-
       onMessage(evt, ws) {
         try {
           const result = validateClientToRelayPayload(JSON.parse(evt.data as string));
@@ -98,6 +105,10 @@ app.get(
       },
     };
   }),
+  (c) => {
+    if (c.req.header("Accept") === "application/nostr+json") return c.json(infomation);
+    return c.text("Honostr Test Relay");
+  },
 );
 
 const server = serve({ fetch: app.fetch, port });
