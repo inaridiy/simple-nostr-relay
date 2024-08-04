@@ -31,7 +31,7 @@ export const tags = sqliteTable(
     eventId: text("event_id").notNull(),
     name: text("name").notNull(),
     value: text("value").notNull(),
-    recomendedRelay: text("recomended_relay"),
+    rest: text("rest", { mode: "json" }).$type<string[]>(),
   },
   (table) => ({
     eventIdIdx: index("event_id_idx").on(table.eventId),

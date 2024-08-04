@@ -18,7 +18,7 @@ const infomation: RelayInfomaion = {
   description: "Honostr Test Relay",
   pubkey: "36d931a0c3e540393015c9ba9df8718b6259bf36180c9c4ef230ecc135c59c52",
   contact: "inari@inaridiy.com",
-  supported_nips: [1, 2, 4, 9, 11],
+  supported_nips: [1, 2, 4, 9, 11, 45],
   software: "Honostr",
   version: "0.0.0",
 };

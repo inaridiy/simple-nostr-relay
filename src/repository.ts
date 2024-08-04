@@ -27,7 +27,7 @@ const aggregateEvent = (rows: JoinedRow[]): Event[] => {
 
     const currentEvent = acc[event.id];
     if (currentEvent && tag) {
-      currentEvent.tags.push(tag.recomendedRelay ? [tag.name, tag.value, tag.recomendedRelay] : [tag.name, tag.value]);
+      currentEvent.tags.push([tag.name, tag.value, ...(tag.rest ?? [])]);
     }
 
     return acc;
@@ -53,7 +53,7 @@ const buildQuery = (filter: SubscriptionFilter): SQL | undefined => {
   if (filter.until) queries.push(lte(schema.events.created_at, new Date(filter.until * 1000)));
 
   const tagQueries = Object.entries(filter)
-    .filter(([key]) => key.startsWith("#"))
+    .filter(([key]) => key.startsWith("#") && key.length === 2)
     .map(([tag, values]) => and(eq(schema.tags.name, tag.slice(1)), inArray(schema.tags.value, values as string[])));
   if (tagQueries.length > 0) queries.push(or(...tagQueries));
 
@@ -77,7 +77,7 @@ export const createRepository = (db: BetterSQLite3Database<typeof schema>) => ({
       eventId: event.id,
       name: tag[0],
       value: tag[1],
-      recomendedRelay: tag[2] ?? null,
+      rest: tag.slice(2),
     }));
 
     await db.transaction(async (tx) => {
