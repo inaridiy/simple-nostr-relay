@@ -27,7 +27,7 @@ export const checkDelegationQuery = (event: Event, query: string): boolean => {
 };
 
 /**
- * @description Verify a delegated event signature defined by NIP26
+ * @description Verify a delegated event signature defined by NIP-26
  * @link https://github.com/nostr-protocol/nips/blob/master/26.md
  */
 export const verifyDelegation = (event: Event): boolean => {

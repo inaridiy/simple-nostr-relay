@@ -7,6 +7,8 @@ export const events = sqliteTable(
     id: text("id").primaryKey(),
     kind: integer("kind").notNull(),
     author: text("author").notNull(),
+    // For NIP-26
+    detegator: text("delegator"),
     sig: text("sig").notNull(),
     hidden: integer("hidden", { mode: "boolean" }).notNull(),
     content: text("content").notNull(),
@@ -16,6 +18,7 @@ export const events = sqliteTable(
   (table) => ({
     kindIdx: index("kind_idx").on(table.kind),
     authorIdx: index("author_idx").on(table.author),
+    detegatorIdx: index("detegator_idx").on(table.detegator),
     createdAtIdx: index("created_at_idx").on(table.created_at),
     eventCompositeIdx: index("kind_composite_idx").on(table.kind, table.created_at),
     kindAuthorIdx: index("kind_author_idx").on(table.kind, table.author),

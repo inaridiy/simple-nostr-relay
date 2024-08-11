@@ -7,7 +7,7 @@ export type DelegationQuery = string;
 export type DelegationTokenMessage = `nostr:delegation:${Hex}:${DelegationQuery}`;
 
 /**
- * @description DelegationTag is a tag for delegation. defined by NIP26
+ * @description DelegationTag is a tag for delegation. defined by NIP-26
  * @link https://github.com/nostr-protocol/nips/blob/master/26.md#introducing-the-delegation-tag
  *
  * @example

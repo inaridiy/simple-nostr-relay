@@ -5,7 +5,7 @@ import { verifyDelegation } from "./nips26";
 import { hasTag, hashEvent } from "./utils";
 
 /**
- * @description Verify a direct event signature not considering NIP26
+ * @description Verify a direct event signature not considering NIP-26
  * @link https://github.com/nostr-protocol/nips/blob/master/1.md
  */
 export const verifyDirectEvent = (event: Event): boolean => {
@@ -13,7 +13,7 @@ export const verifyDirectEvent = (event: Event): boolean => {
 };
 
 /**
- * @description Verify an event signature considering NIP26 "Delegated Event Signing"
+ * @description Verify an event signature considering NIP-26 "Delegated Event Signing"
  * @link https://github.com/nostr-protocol/nips/blob/master/1.md
  * @link https://github.com/nostr-protocol/nips/blob/master/26.md
  */

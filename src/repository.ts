@@ -39,15 +39,17 @@ const aggregateEvent = (rows: JoinedRow[]): Event[] => {
 const helper = (column: SQLiteColumn, values: string[]) =>
   or(...values.map((value) => (value.length === 64 ? eq(column, value) : like(column, `${value}%`))));
 
-const buildQuery = (filter: SubscriptionFilter): SQL | undefined => {
+const buildQuery = (filter: SubscriptionFilter, opt: RepositoryOptions): SQL | undefined => {
   const queries: (SQLWrapper | undefined)[] = [];
 
   if (filter.ids)
     if (filter.ids.length > 0) queries.push(helper(schema.events.id, filter.ids));
     else queries.push(sql`1 = 0`);
   if (filter.authors)
-    if (filter.authors.length > 0) queries.push(helper(schema.events.author, filter.authors));
-    else queries.push(sql`1 = 0`);
+    if (filter.authors.length === 0) queries.push(sql`1 = 0`);
+    else if (opt.enableNIP26)
+      queries.push(or(helper(schema.events.detegator, filter.authors), helper(schema.events.author, filter.authors)));
+    else queries.push(helper(schema.events.author, filter.authors));
   if (filter.kinds) queries.push(inArray(schema.events.kind, filter.kinds));
   if (filter.since) queries.push(gte(schema.events.created_at, new Date(filter.since * 1000)));
   if (filter.until) queries.push(lte(schema.events.created_at, new Date(filter.until * 1000)));
@@ -60,12 +62,17 @@ const buildQuery = (filter: SubscriptionFilter): SQL | undefined => {
   return and(...queries);
 };
 
-export const createRepository = (db: BetterSQLite3Database<typeof schema>) => ({
+export type RepositoryOptions = {
+  enableNIP26?: boolean;
+};
+
+export const createRepository = (db: BetterSQLite3Database<typeof schema>, options: RepositoryOptions = {}) => ({
   saveEvent: async (event: Event): Promise<void> => {
     const insertableEvent = {
       id: event.id,
       kind: event.kind,
       author: event.pubkey,
+      detegator: event.tags.find((tag) => tag[0] === "delegation")?.[1] ?? null,
       sig: event.sig,
       hidden: false,
       content: event.content,
@@ -91,7 +98,7 @@ export const createRepository = (db: BetterSQLite3Database<typeof schema>) => ({
       .select({ count: count(schema.events.id) })
       .from(schema.events)
       .leftJoin(schema.tags, eq(schema.events.id, schema.tags.eventId))
-      .where(or(...filters.map(buildQuery)))
+      .where(or(...filters.map((filter) => buildQuery(filter, options))))
       .groupBy(schema.events.id);
     return result[0]?.count ?? 0;
   },
@@ -113,7 +120,7 @@ export const createRepository = (db: BetterSQLite3Database<typeof schema>) => ({
         .select({ event: schema.events, tag: schema.tags })
         .from(schema.events)
         .leftJoin(schema.tags, eq(schema.events.id, schema.tags.eventId))
-        .where(buildQuery(filter)),
+        .where(buildQuery(filter, options)),
     );
 
     const events =
