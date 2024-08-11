@@ -10,3 +10,11 @@ export const hashEvent = (event: Event): Uint8Array => {
   const messageHash = sha256(JSON.stringify(serialized));
   return messageHash;
 };
+
+export const hasTag = (event: Event, tag: string): boolean => {
+  return event.tags.some((t) => t?.[0] === tag);
+};
+
+export const getTag = (event: Event, tag: string): [string, ...string[]] | undefined => {
+  return event.tags.find((t) => t?.[0] === tag);
+};
