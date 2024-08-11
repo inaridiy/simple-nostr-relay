@@ -28,7 +28,7 @@ const port = 3000;
 
 const sqlite = new Database("database.sqlite");
 const db = drizzle(sqlite, { schema });
-const repository = createRepository(db);
+const repository = createRepository(db, { enableNIP26: true });
 
 type Subscription = {
   subscriptionId: string;
