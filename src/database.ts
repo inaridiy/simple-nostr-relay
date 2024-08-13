@@ -11,6 +11,7 @@ export const events = sqliteTable(
     detegator: text("delegator"),
     sig: text("sig").notNull(),
     hidden: integer("hidden", { mode: "boolean" }).notNull(),
+    replaced: integer("replaced", { mode: "boolean" }).notNull(),
     content: text("content").notNull(),
     first_seen: integer("first_seen", { mode: "timestamp" }).notNull(),
     created_at: integer("created_at", { mode: "timestamp" }).notNull(),

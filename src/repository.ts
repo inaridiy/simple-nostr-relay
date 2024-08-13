@@ -38,21 +38,54 @@ const aggregateEvent = (rows: JoinedRow[]): Event[] => {
   return Object.values(aggregated);
 };
 
-const helper = (column: SQLiteColumn, values: string[]) =>
+const toInsertableEvent = (event: Event) => {
+  const insertableEvent = {
+    id: event.id,
+    kind: event.kind,
+    author: event.pubkey,
+    detegator: getTagValuesByName(event, "delegation")[0] ?? null,
+    sig: event.sig,
+    hidden: false,
+    replaced: false,
+    content: event.content,
+    first_seen: new Date(),
+    created_at: new Date(event.created_at * 1000),
+  };
+  const insertableTags = event.tags.map((tag) => ({
+    id: uuidv7(),
+    eventId: event.id,
+    name: tag[0],
+    value: tag[1],
+    rest: tag.slice(2),
+  }));
+
+  return { insertableEvent, insertableTags };
+};
+
+const hexQueryHelper = (column: SQLiteColumn, values: string[]) =>
   or(...values.map((value) => (value.length === 64 ? eq(column, value) : like(column, `${value}%`))));
+
+const hasDIdentifierQueryHelper = (dIdentifier: string) => {
+  return sql`${schema.events.id} IN (
+    SELECT DISTINCT ${schema.tags.eventId}
+    FROM ${schema.tags}
+    WHERE ${schema.tags.name} = 'd' AND ${schema.tags.value} = ${dIdentifier}
+  )`;
+};
 
 const buildQuery = (filter: SubscriptionFilter, opt: RepositoryOptions): SQL | undefined => {
   const queries: (SQLWrapper | undefined)[] = [];
   queries.push(eq(schema.events.hidden, false));
+  queries.push(eq(schema.events.replaced, false));
 
   if (filter.ids)
-    if (filter.ids.length > 0) queries.push(helper(schema.events.id, filter.ids));
+    if (filter.ids.length > 0) queries.push(hexQueryHelper(schema.events.id, filter.ids));
     else queries.push(sql`1 = 0`);
   if (filter.authors)
     if (filter.authors.length === 0) queries.push(sql`1 = 0`);
     else if (opt.enableNIP26)
-      queries.push(or(helper(schema.events.detegator, filter.authors), helper(schema.events.author, filter.authors)));
-    else queries.push(helper(schema.events.author, filter.authors));
+      queries.push(or(hexQueryHelper(schema.events.detegator, filter.authors), hexQueryHelper(schema.events.author, filter.authors)));
+    else queries.push(hexQueryHelper(schema.events.author, filter.authors));
   if (filter.kinds) queries.push(inArray(schema.events.kind, filter.kinds));
   if (filter.since) queries.push(gte(schema.events.created_at, new Date(filter.since * 1000)));
   if (filter.until) queries.push(lte(schema.events.created_at, new Date(filter.until * 1000)));
@@ -71,39 +104,43 @@ export type RepositoryOptions = {
 
 export const createRepository = (db: BetterSQLite3Database<typeof schema>, options: RepositoryOptions = {}) => ({
   saveEvent: async (event: Event): Promise<void> => {
-    const insertableEvent = {
-      id: event.id,
-      kind: event.kind,
-      author: event.pubkey,
-      detegator: getTagValuesByName(event, "delegation")[0] ?? null,
-      sig: event.sig,
-      hidden: false,
-      content: event.content,
-      first_seen: new Date(),
-      created_at: new Date(event.created_at * 1000),
-    };
-    const insertableTags = event.tags.map((tag) => ({
-      id: uuidv7(),
-      eventId: event.id,
-      name: tag[0],
-      value: tag[1],
-      rest: tag.slice(2),
-    }));
+    const { insertableEvent, insertableTags } = toInsertableEvent(event);
 
     await db.transaction(async (tx) => {
       await tx.insert(schema.events).values(insertableEvent);
       insertableTags.length > 0 && (await tx.insert(schema.tags).values(insertableTags));
     });
   },
-  countEventsByFilters: async (filters: SubscriptionFilter[]): Promise<number> => {
-    if (filters.length === 0) return 0;
-    const result = await db
-      .select({ count: count(schema.events.id) })
-      .from(schema.events)
-      .leftJoin(schema.tags, eq(schema.events.id, schema.tags.eventId))
-      .where(or(...filters.map((filter) => buildQuery(filter, options))))
-      .groupBy(schema.events.id);
-    return result[0]?.count ?? 0;
+  saveReplaceableEvent: async (event: Event): Promise<void> => {
+    const { insertableEvent, insertableTags } = toInsertableEvent(event);
+
+    await db.transaction(async (tx) => {
+      await tx
+        .update(schema.events)
+        .set({ replaced: true })
+        .where(and(eq(schema.events.author, event.pubkey), eq(schema.events.kind, event.kind)));
+      await tx.insert(schema.events).values(insertableEvent);
+      insertableTags.length > 0 && (await tx.insert(schema.tags).values(insertableTags));
+    });
+  },
+  saveTemporaryEvent: async (_event: Event): Promise<void> => {
+    /* Do nothing */
+  },
+  saveParameterizedReplaceableEvent: async (event: Event): Promise<void> => {
+    const { insertableEvent, insertableTags } = toInsertableEvent(event);
+
+    const d = getTagValuesByName(event, "d");
+    if (d.length !== 0) throw new Error("invalid: Parameterized replaceable event should not have d tag");
+    const [dIdentifier] = d;
+
+    await db.transaction(async (tx) => {
+      await tx
+        .update(schema.events)
+        .set({ replaced: true })
+        .where(and(eq(schema.events.author, event.pubkey), eq(schema.events.kind, event.kind), hasDIdentifierQueryHelper(dIdentifier)));
+      await tx.insert(schema.events).values(insertableEvent);
+      insertableTags.length > 0 && (await tx.insert(schema.tags).values(insertableTags));
+    });
   },
   deleteEventsByDeletionEvent: async (event: DeletionEvent): Promise<void> => {
     const e = getTagValuesByName(event, "e");
@@ -127,13 +164,7 @@ export const createRepository = (db: BetterSQLite3Database<typeof schema>, optio
             eq(schema.events.kind, Number(kind)),
             authorQuery,
             eq(schema.events.hidden, false),
-            dIdentifier
-              ? sql`${schema.events.id} IN (
-              SELECT DISTINCT ${schema.tags.eventId}
-              FROM ${schema.tags}
-              WHERE ${schema.tags.name} = 'd' AND ${schema.tags.value} = ${dIdentifier}
-            )`
-              : undefined,
+            dIdentifier ? hasDIdentifierQueryHelper(dIdentifier) : undefined,
           ),
         );
       }
@@ -146,6 +177,16 @@ export const createRepository = (db: BetterSQLite3Database<typeof schema>, optio
       .update(schema.events)
       .set({ hidden: true })
       .where(or(...queries));
+  },
+  countEventsByFilters: async (filters: SubscriptionFilter[]): Promise<number> => {
+    if (filters.length === 0) return 0;
+    const result = await db
+      .select({ count: count(schema.events.id) })
+      .from(schema.events)
+      .leftJoin(schema.tags, eq(schema.events.id, schema.tags.eventId))
+      .where(or(...filters.map((filter) => buildQuery(filter, options))))
+      .groupBy(schema.events.id);
+    return result[0]?.count ?? 0;
   },
   queryEventById: async (id: string): Promise<Event | null> => {
     const events = await db

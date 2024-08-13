@@ -15,6 +15,13 @@
       "when": 1723543936927,
       "tag": "0001_closed_payback",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1723556512937,
+      "tag": "0002_nasty_living_tribunal",
+      "breakpoints": true
     }
   ]
 }
