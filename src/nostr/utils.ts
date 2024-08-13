@@ -15,6 +15,10 @@ export const hasTag = (event: Event, tag: string): boolean => {
   return event.tags.some((t) => t?.[0] === tag);
 };
 
-export const getTag = (event: Event, tag: string): [string, ...string[]] | undefined => {
-  return event.tags.find((t) => t?.[0] === tag);
+export const getTagsByName = <T extends string>(event: Event, tag: T): [T, ...string[]][] => {
+  return event.tags.filter((t) => t?.[0] === tag) as [T, ...string[]][];
+};
+
+export const getTagValuesByName = <T extends string>(event: Event, tag: T): string[] => {
+  return getTagsByName(event, tag).map((t) => t[1]);
 };

@@ -31,7 +31,7 @@ export type UnixTimestamp = number;
  * }
  * ```
  */
-export type Event = {
+export interface Event {
   /**
    * @description 32-bytes lowercase hex-encoded sha256 of the serialized event data
    * @pattern ^[0-9a-f]{64}$
@@ -65,6 +65,26 @@ export type Event = {
    * @pattern ^[0-9a-f]{128}$
    */
   sig: Hex;
+}
+
+export type WithRecommendedRelayUrl<E extends [string, string]> = E | [...E, recommendedRelayUrl: string];
+
+export type PrimitiveTags = {
+  /** ["d", <identify>] */
+  D: ["d", value: string];
+  /** ["e", <32-bytes lowercase hex of the id of another event>, <recommended relay URL, optional>] */
+  E: WithRecommendedRelayUrl<["e", eventId: Hex]>;
+  /** ["p", <32-bytes lowercase hex of a pubkey>, <recommended relay URL, optional>] */
+  P: WithRecommendedRelayUrl<["p", pubkey: Hex]>;
+  /**
+   * @example
+   * ["a", <kind integer>:<32-bytes lowercase hex of a pubkey>:<d tag value>, <recommended relay URL, optional>]
+   * or
+   * ["a", <kind integer>:<32-bytes lowercase hex of a pubkey>:, <recommended relay URL, optional>]
+   */
+  A: WithRecommendedRelayUrl<["a", `${number}:${Hex}:${string | ""}`]>;
+  /** ["k", <kind integer>] */
+  K: ["k", value: `${number}`];
 };
 
 /**

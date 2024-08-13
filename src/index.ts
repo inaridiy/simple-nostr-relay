@@ -2,9 +2,10 @@ import * as schema from "@/database";
 import { isEventMatchSomeFilters } from "@/nostr/isEventMatchSomeFilters";
 import { verifyEvent } from "@/nostr/verifyEvent";
 import { createRepository } from "@/repository";
-import type { ClientToRelayPayload, Event, RelayToClientPayload, SubscriptionFilter } from "@/types/core";
+import type { ClientToRelayPayload, Event, ReasonMessage, RelayToClientPayload, SubscriptionFilter } from "@/types/core";
 import type { RelayInfomaion } from "@/types/nip11";
 import { validateClientToRelayPayload } from "@/validators/validateClientToRelayPayload";
+import { validateDeletionEvent } from "@/validators/validateDeletionEvent";
 import { serve } from "@hono/node-server";
 import { createNodeWebSocket } from "@hono/node-ws";
 import Database from "better-sqlite3";
@@ -18,7 +19,7 @@ const infomation: RelayInfomaion = {
   description: "Honostr Test Relay",
   pubkey: "36d931a0c3e540393015c9ba9df8718b6259bf36180c9c4ef230ecc135c59c52",
   contact: "inari@inaridiy.com",
-  supported_nips: [1, 2, 4, 9, 11, 45],
+  supported_nips: [1, 2, 4, 9, 11, 45, 26],
   software: "Honostr",
   version: "0.0.0",
 };
@@ -49,18 +50,25 @@ const boradcastEvent = (event: Event) => {
 const processEvent = async (ws: WSContext, payload: ClientToRelayPayload<"EVENT">) => {
   const [_, event] = payload;
   const isValid = verifyEvent(event);
-
   if (!isValid) return wsSendPayload(ws, ["OK", event.id, false, "invalid: event signature is invalid"]);
 
   const existingEvent = await repository.queryEventById(event.id);
   if (existingEvent) return wsSendPayload(ws, ["OK", event.id, false, "duplicate: event already exists"]);
 
   try {
+    if (event.kind === 5) {
+      const result = validateDeletionEvent(event);
+      if (!result.success) throw new Error("invalid: deletion event is invalid");
+      await repository.deleteEventsByDeletionEvent(result.data);
+    }
+
     await repository.saveEvent(event);
+
     wsSendPayload(ws, ["OK", event.id, true, ""]);
   } catch (error) {
-    if (error instanceof Error) wsSendPayload(ws, ["OK", event.id, false, `error: ${error.message}`]);
-    else wsSendPayload(ws, ["OK", event.id, false, "error: unknown error"]);
+    let message = error instanceof Error ? error.message : "error: unknown error";
+    message = message.includes(":") ? message : `error: ${message}`;
+    wsSendPayload(ws, ["OK", event.id, false, message as ReasonMessage]);
   }
 
   boradcastEvent(event);

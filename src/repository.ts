@@ -3,7 +3,9 @@ import type { BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
 import { type SQLiteColumn, union } from "drizzle-orm/sqlite-core";
 import { uuidv7 } from "uuidv7";
 import * as schema from "./database";
+import { getTagValuesByName } from "./nostr/utils";
 import type { Event, SubscriptionFilter } from "./types/core";
+import type { DeletionEvent } from "./types/nip9";
 
 type JoinedRow = {
   event: typeof schema.events.$inferInsert;
@@ -41,6 +43,7 @@ const helper = (column: SQLiteColumn, values: string[]) =>
 
 const buildQuery = (filter: SubscriptionFilter, opt: RepositoryOptions): SQL | undefined => {
   const queries: (SQLWrapper | undefined)[] = [];
+  queries.push(eq(schema.events.hidden, false));
 
   if (filter.ids)
     if (filter.ids.length > 0) queries.push(helper(schema.events.id, filter.ids));
@@ -101,6 +104,48 @@ export const createRepository = (db: BetterSQLite3Database<typeof schema>, optio
       .where(or(...filters.map((filter) => buildQuery(filter, options))))
       .groupBy(schema.events.id);
     return result[0]?.count ?? 0;
+  },
+  deleteEventsByDeletionEvent: async (event: DeletionEvent): Promise<void> => {
+    const e = getTagValuesByName(event, "e");
+    const a = getTagValuesByName(event, "a");
+    const k = getTagValuesByName(event, "k");
+    if (a.length === 0 && e.length === 0 && k.length === 0) return;
+
+    const authorQuery = options.enableNIP26
+      ? or(eq(schema.events.author, event.pubkey), eq(schema.events.detegator, event.pubkey))
+      : eq(schema.events.author, event.pubkey);
+
+    const queries = [];
+    if (e.length > 0) {
+      queries.push(and(inArray(schema.events.id, e), eq(schema.events.hidden, false), authorQuery));
+    }
+    if (a.length > 0) {
+      for (const aValue of a) {
+        const [kind, , dIdentifier] = aValue.split(":");
+        queries.push(
+          and(
+            eq(schema.events.kind, Number(kind)),
+            authorQuery,
+            eq(schema.events.hidden, false),
+            dIdentifier
+              ? sql`${schema.events.id} IN (
+              SELECT DISTINCT ${schema.tags.eventId}
+              FROM ${schema.tags}
+              WHERE ${schema.tags.name} = 'd' AND ${schema.tags.value} = ${dIdentifier}
+            )`
+              : undefined,
+          ),
+        );
+      }
+    }
+    if (k.length > 0) {
+      queries.push(and(inArray(schema.events.kind, k.map(Number)), eq(schema.events.hidden, false), authorQuery));
+    }
+
+    await db
+      .update(schema.events)
+      .set({ hidden: true })
+      .where(or(...queries));
   },
   queryEventById: async (id: string): Promise<Event | null> => {
     const events = await db

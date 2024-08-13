@@ -3,7 +3,7 @@ import typia from "typia";
 export const validateDelegationTag = (input: any): typia.IValidation<DelegationTag> => {
     const errors = [] as any[];
     const __is = (input: any): input is DelegationTag => {
-        return Array.isArray(input) && (input.length === 4 && "delegation" === input[0] && "string" === typeof input[1] && "string" === typeof input[2] && ("string" === typeof input[3] && RegExp(/^nostr:delegation:(.*):(.*)/).test(input[3])));
+        return Array.isArray(input) && (input.length === 4 && "delegation" === input[0] && "string" === typeof input[1] && "string" === typeof input[2] && "string" === typeof input[3]);
     };
     if (false === __is(input)) {
         const $report = (typia.createValidate as any).report(errors);
@@ -14,7 +14,7 @@ export const validateDelegationTag = (input: any): typia.IValidation<DelegationT
                 value: input
             })) && ((input.length === 4 || $report(true, {
                 path: _path + "",
-                expected: "[\"delegation\", string, string, `nostr:delegation:${string}:${string}`]",
+                expected: "[\"delegation\", string, string, string]",
                 value: input
             })) && [
                 "delegation" === input[0] || $report(true, {
@@ -32,9 +32,9 @@ export const validateDelegationTag = (input: any): typia.IValidation<DelegationT
                     expected: "string",
                     value: input[2]
                 }),
-                "string" === typeof input[3] && RegExp(/^nostr:delegation:(.*):(.*)/).test(input[3]) || $report(true, {
+                "string" === typeof input[3] || $report(true, {
                     path: _path + "[3]",
-                    expected: "`nostr:delegation:${string}:${string}`",
+                    expected: "string",
                     value: input[3]
                 })
             ].every((flag: boolean) => flag)) || $report(true, {

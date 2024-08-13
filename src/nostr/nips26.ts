@@ -4,7 +4,7 @@ import { schnorr } from "@noble/curves/secp256k1";
 import { sha256 } from "@noble/hashes/sha256";
 import { hexToBytes } from "@noble/hashes/utils";
 import type { Event } from "../types/core";
-import { getTag } from "./utils";
+import { getTagsByName } from "./utils";
 
 export const checkDelegationQuery = (event: Event, query: string): boolean => {
   for (const cond of query.split("&")) {
@@ -31,7 +31,10 @@ export const checkDelegationQuery = (event: Event, query: string): boolean => {
  * @link https://github.com/nostr-protocol/nips/blob/master/26.md
  */
 export const verifyDelegation = (event: Event): boolean => {
-  const validDelegation = validateDelegationTag(getTag(event, "delegation"));
+  const delegationTags = getTagsByName(event, "delegation");
+  if (delegationTags.length !== 1) return false;
+
+  const validDelegation = validateDelegationTag(delegationTags[0]);
   if (!validDelegation.success) return false;
 
   const [, delegatorPubkey, query, token] = validDelegation.data;
