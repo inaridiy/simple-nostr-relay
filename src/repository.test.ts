@@ -18,7 +18,7 @@ describe("Event Repository", () => {
   });
 
   describe("create event", () => {
-    it("should create an event", async () => {
+    it("should create an simplest event", async () => {
       const sk = generateSecretKey();
       const event = finalizeEvent(
         {
@@ -32,7 +32,45 @@ describe("Event Repository", () => {
       await repository.saveEvent(event as unknown as Event);
 
       const savedEvent = await repository.queryEventById(event.id);
-      expect(savedEvent).toBeDefined();
+      expect(savedEvent).toMatchObject(event);
+    });
+    it("should create an event with tags", async () => {
+      const sk = generateSecretKey();
+      const event = finalizeEvent(
+        {
+          kind: 1,
+          created_at: Math.floor(Date.now() / 1000),
+          tags: [
+            ["tag1", "value1"],
+            ["tag2", "value2"],
+          ],
+          content: "hello",
+        },
+        sk,
+      );
+      await repository.saveEvent(event as unknown as Event);
+
+      const savedEvent = await repository.queryEventById(event.id);
+      expect(savedEvent).toMatchObject(event);
+    });
+    it("should create an event with tags and rest", async () => {
+      const sk = generateSecretKey();
+      const event = finalizeEvent(
+        {
+          kind: 1,
+          created_at: Math.floor(Date.now() / 1000),
+          tags: [
+            ["tag1", "value1", "rest1"],
+            ["tag2", "value2", "rest2"],
+          ],
+          content: "hello",
+        },
+        sk,
+      );
+      await repository.saveEvent(event as unknown as Event);
+
+      const savedEvent = await repository.queryEventById(event.id);
+      expect(savedEvent).toMatchObject(event);
     });
   });
 });

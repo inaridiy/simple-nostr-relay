@@ -149,11 +149,10 @@ export const createRepository = (db: BetterSQLite3Database<typeof schema>, optio
   },
   queryEventById: async (id: string): Promise<Event | null> => {
     const events = await db
-      .select({ event: schema.events, tag: schema.tags })
+      .selectDistinct({ event: schema.events, tag: schema.tags })
       .from(schema.events)
       .leftJoin(schema.tags, eq(schema.events.id, schema.tags.eventId))
-      .where(eq(schema.events.id, id))
-      .limit(1);
+      .where(eq(schema.events.id, id));
 
     if (events.length === 0) return null;
     return aggregateEvent(events)[0];
