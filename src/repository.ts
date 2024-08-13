@@ -92,7 +92,7 @@ export const createRepository = (db: BetterSQLite3Database<typeof schema>, optio
 
     await db.transaction(async (tx) => {
       await tx.insert(schema.events).values(insertableEvent);
-      await tx.insert(schema.tags).values(insertableTags);
+      insertableTags.length > 0 && (await tx.insert(schema.tags).values(insertableTags));
     });
   },
   countEventsByFilters: async (filters: SubscriptionFilter[]): Promise<number> => {
