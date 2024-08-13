@@ -130,7 +130,7 @@ export const createRepository = (db: BetterSQLite3Database<typeof schema>, optio
     const { insertableEvent, insertableTags } = toInsertableEvent(event);
 
     const d = getTagValuesByName(event, "d");
-    if (d.length !== 0) throw new Error("invalid: Parameterized replaceable event should not have d tag");
+    if (d.length !== 1) throw new Error("invalid: Parameterized replaceable event should not have d tag");
     const [dIdentifier] = d;
 
     await db.transaction(async (tx) => {
@@ -184,8 +184,7 @@ export const createRepository = (db: BetterSQLite3Database<typeof schema>, optio
       .select({ count: count(schema.events.id) })
       .from(schema.events)
       .leftJoin(schema.tags, eq(schema.events.id, schema.tags.eventId))
-      .where(or(...filters.map((filter) => buildQuery(filter, options))))
-      .groupBy(schema.events.id);
+      .where(or(...filters.map((filter) => buildQuery(filter, options))));
     return result[0]?.count ?? 0;
   },
   queryEventById: async (id: string): Promise<Event | null> => {
