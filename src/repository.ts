@@ -75,7 +75,7 @@ export const createRepository = (db: BetterSQLite3Database<typeof schema>, optio
       id: event.id,
       kind: event.kind,
       author: event.pubkey,
-      detegator: event.tags.find((tag) => tag[0] === "delegation")?.[1] ?? null,
+      detegator: getTagValuesByName(event, "delegation")[0] ?? null,
       sig: event.sig,
       hidden: false,
       content: event.content,

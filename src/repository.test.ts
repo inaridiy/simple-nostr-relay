@@ -78,31 +78,31 @@ describe("Event Repository", () => {
       const savedEvent = await repository.queryEventById(event.id);
       expect(savedEvent).toMatchObject(event);
     });
-  });
-  it("should create an event with delegation", async () => {
-    const delegator = generateSecretKey();
-    const delegatee = generateSecretKey();
+    it("should create an event with delegation", async () => {
+      const delegator = generateSecretKey();
+      const delegatee = generateSecretKey();
 
-    const delegationTokenMessage = `nostr:delegation:${getPublicKey(delegatee)}:kind=1`;
-    const token = schnorr.sign(sha256(delegationTokenMessage), delegator);
+      const delegationTokenMessage = `nostr:delegation:${getPublicKey(delegatee)}:kind=1`;
+      const token = schnorr.sign(sha256(delegationTokenMessage), delegator);
 
-    const event = finalizeEvent(
-      {
-        kind: 1,
-        created_at: Math.floor(Date.now() / 1000),
-        tags: [["delegation", getPublicKey(delegator), "kind=1", bytesToHex(token)]],
-        content: "hello",
-      },
-      delegatee,
-    );
+      const event = finalizeEvent(
+        {
+          kind: 1,
+          created_at: Math.floor(Date.now() / 1000),
+          tags: [["delegation", getPublicKey(delegator), "kind=1", bytesToHex(token)]],
+          content: "hello",
+        },
+        delegatee,
+      );
 
-    expect(verifyDelegation(event as unknown as Event)).toBe(true);
+      expect(verifyDelegation(event as unknown as Event)).toBe(true);
 
-    await repository.saveEvent(event as unknown as Event);
-    const savedEvent = await repository.queryEventById(event.id);
-    expect(savedEvent).toMatchObject(event);
+      await repository.saveEvent(event as unknown as Event);
+      const savedEvent = await repository.queryEventById(event.id);
+      expect(savedEvent).toMatchObject(event);
 
-    const rawSaved = await db.query.events.findFirst({ where: eq(schema.events.id, event.id) });
-    expect(rawSaved?.detegator).toBe(getPublicKey(delegator));
+      const rawSaved = await db.query.events.findFirst({ where: eq(schema.events.id, event.id) });
+      expect(rawSaved?.detegator).toBe(getPublicKey(delegator));
+    });
   });
 });
