@@ -11,6 +11,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { verifyDelegation } from "./nostr/nips26";
 import { createRepository } from "./repository";
 import type { Event } from "./types/core";
+import type { DeletionEvent } from "./types/nip9";
 
 describe("Event Repository", () => {
   let db: ReturnType<typeof drizzle<typeof schema>>;
@@ -23,8 +24,8 @@ describe("Event Repository", () => {
     repository = createRepository(db, { enableNIP26: true });
   });
 
-  describe("create event", () => {
-    it("should create an simplest event", async () => {
+  describe("save event", () => {
+    it("should save an simplest event", async () => {
       const sk = generateSecretKey();
       const event = finalizeEvent(
         {
@@ -40,7 +41,7 @@ describe("Event Repository", () => {
       const savedEvent = await repository.queryEventById(event.id);
       expect(savedEvent).toMatchObject(event);
     });
-    it("should create an event with tags", async () => {
+    it("should save an event with tags", async () => {
       const sk = generateSecretKey();
       const event = finalizeEvent(
         {
@@ -59,7 +60,7 @@ describe("Event Repository", () => {
       const savedEvent = await repository.queryEventById(event.id);
       expect(savedEvent).toMatchObject(event);
     });
-    it("should create an event with tags and rest", async () => {
+    it("should save an event with tags and rest", async () => {
       const sk = generateSecretKey();
       const event = finalizeEvent(
         {
@@ -78,7 +79,7 @@ describe("Event Repository", () => {
       const savedEvent = await repository.queryEventById(event.id);
       expect(savedEvent).toMatchObject(event);
     });
-    it("should create an event with delegation", async () => {
+    it("should save an event with delegation", async () => {
       const delegator = generateSecretKey();
       const delegatee = generateSecretKey();
 
@@ -105,4 +106,57 @@ describe("Event Repository", () => {
       expect(rawSaved?.detegator).toBe(getPublicKey(delegator));
     });
   });
+  describe("delete events", () => {
+    it("should delete an event by e tag", async () => {
+      const sk = generateSecretKey();
+      const event1 = finalizeEvent(
+        {
+          kind: 1,
+          created_at: Math.floor(Date.now() / 1000),
+          tags: [],
+          content: "hello",
+        },
+        sk,
+      );
+      await repository.saveEvent(event1 as unknown as Event);
+
+      const deletionEvent = finalizeEvent(
+        {
+          kind: 5,
+          created_at: Math.floor(Date.now() / 1000),
+          tags: [["e", event1.id]],
+          content: "delete for test",
+        },
+        sk,
+      );
+      await repository.deleteEventsByDeletionEvent(deletionEvent as unknown as DeletionEvent);
+
+      const savedEvent = await repository.queryEventById(event1.id);
+      expect(savedEvent).toBe(null);
+
+      const rawSaved1 = await db.query.events.findFirst({ where: eq(schema.events.id, event1.id) });
+      expect(rawSaved1?.hidden).toBe(true);
+    });
+
+    it("should delete an event by a tag", async () => {
+      const sk = generateSecretKey();
+      const event1 = finalizeEvent(
+        {
+          kind: 1,
+          created_at: Math.floor(Date.now() / 1000),
+          tags: [],
+          content: "hello",
+        },
+        sk,
+      );
+      await repository.saveEvent(event1 as unknown as Event);
+    });
+  });
+  // describe("query events", async () => {
+  //   beforeAll(async () => {
+  //     const sk1 = generateSecretKey();
+  //     const sk2 = generateSecretKey();
+  //     const sk3 = generateSecretKey();
+  //   });
+  // });
 });

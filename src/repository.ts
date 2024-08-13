@@ -152,7 +152,7 @@ export const createRepository = (db: BetterSQLite3Database<typeof schema>, optio
       .selectDistinct({ event: schema.events, tag: schema.tags })
       .from(schema.events)
       .leftJoin(schema.tags, eq(schema.events.id, schema.tags.eventId))
-      .where(eq(schema.events.id, id));
+      .where(and(eq(schema.events.id, id), eq(schema.events.hidden, false)));
 
     if (events.length === 0) return null;
     return aggregateEvent(events)[0];
