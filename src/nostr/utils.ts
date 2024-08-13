@@ -22,3 +22,14 @@ export const getTagsByName = <T extends string>(event: Event, tag: T): [T, ...st
 export const getTagValuesByName = <T extends string>(event: Event, tag: T): string[] => {
   return getTagsByName(event, tag).map((t) => t[1]);
 };
+
+export const isReplaceableEvent = (event: Event): boolean => {
+  return event.kind === 0 || event.kind === 3 || event.kind === 41 || (10000 <= event.kind && event.kind < 20000);
+};
+
+export const isTemporaryEvent = (event: Event): boolean => {
+  return 20000 <= event.kind && event.kind < 30000;
+};
+export const isParameterizedReplaceableEvent = (event: Event): boolean => {
+  return 30000 <= event.kind && event.kind < 40000;
+};

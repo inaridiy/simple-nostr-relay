@@ -13,6 +13,7 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import type { WSContext } from "hono/ws";
+import { isParameterizedReplaceableEvent, isReplaceableEvent, isTemporaryEvent } from "./nostr/utils";
 
 const infomation: RelayInfomaion = {
   name: "Honostr Test Relay",
@@ -56,13 +57,15 @@ const processEvent = async (ws: WSContext, payload: ClientToRelayPayload<"EVENT"
   if (existingEvent) return wsSendPayload(ws, ["OK", event.id, false, "duplicate: event already exists"]);
 
   try {
-    if (event.kind === 5) {
+    if (isReplaceableEvent(event)) await repository.saveReplaceableEvent(event);
+    else if (isTemporaryEvent(event)) await repository.saveTemporaryEvent(event);
+    else if (isParameterizedReplaceableEvent(event)) await repository.saveParameterizedReplaceableEvent(event);
+    else if (event.kind === 5) {
       const result = validateDeletionEvent(event);
       if (!result.success) throw new Error("invalid: deletion event is invalid");
       await repository.deleteEventsByDeletionEvent(result.data);
-    }
-
-    await repository.saveEvent(event);
+      await repository.saveEvent(event);
+    } else await repository.saveEvent(event);
 
     wsSendPayload(ws, ["OK", event.id, true, ""]);
   } catch (error) {
