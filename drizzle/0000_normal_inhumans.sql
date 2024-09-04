@@ -14,7 +14,7 @@ CREATE TABLE `tags` (
 	`event_id` text NOT NULL,
 	`name` text NOT NULL,
 	`value` text NOT NULL,
-	`recomended_relay` text
+	`rest` text
 );
 --> statement-breakpoint
 CREATE INDEX `kind_idx` ON `events` (`kind`);--> statement-breakpoint

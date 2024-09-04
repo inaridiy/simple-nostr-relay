@@ -7,8 +7,11 @@ export const events = sqliteTable(
     id: text("id").primaryKey(),
     kind: integer("kind").notNull(),
     author: text("author").notNull(),
+    // For NIP-26
+    detegator: text("delegator"),
     sig: text("sig").notNull(),
     hidden: integer("hidden", { mode: "boolean" }).notNull(),
+    replaced: integer("replaced", { mode: "boolean" }).notNull(),
     content: text("content").notNull(),
     first_seen: integer("first_seen", { mode: "timestamp" }).notNull(),
     created_at: integer("created_at", { mode: "timestamp" }).notNull(),
@@ -16,6 +19,7 @@ export const events = sqliteTable(
   (table) => ({
     kindIdx: index("kind_idx").on(table.kind),
     authorIdx: index("author_idx").on(table.author),
+    detegatorIdx: index("detegator_idx").on(table.detegator),
     createdAtIdx: index("created_at_idx").on(table.created_at),
     eventCompositeIdx: index("kind_composite_idx").on(table.kind, table.created_at),
     kindAuthorIdx: index("kind_author_idx").on(table.kind, table.author),
@@ -31,7 +35,7 @@ export const tags = sqliteTable(
     eventId: text("event_id").notNull(),
     name: text("name").notNull(),
     value: text("value").notNull(),
-    recomendedRelay: text("recomended_relay"),
+    rest: text("rest", { mode: "json" }).$type<string[]>(),
   },
   (table) => ({
     eventIdIdx: index("event_id_idx").on(table.eventId),

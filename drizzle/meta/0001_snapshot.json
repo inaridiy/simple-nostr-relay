@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "931134f2-95ee-49a8-8761-4d96de4c3f28",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "353d129b-2c4c-4715-894e-78327ab21be4",
+  "prevId": "931134f2-95ee-49a8-8761-4d96de4c3f28",
   "tables": {
     "events": {
       "name": "events",
@@ -26,6 +26,13 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false
+        },
+        "delegator": {
+          "name": "delegator",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
           "autoincrement": false
         },
         "sig": {
@@ -73,6 +80,11 @@
         "author_idx": {
           "name": "author_idx",
           "columns": ["author"],
+          "isUnique": false
+        },
+        "detegator_idx": {
+          "name": "detegator_idx",
+          "columns": ["delegator"],
           "isUnique": false
         },
         "created_at_idx": {
