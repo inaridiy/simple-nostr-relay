@@ -125,7 +125,7 @@ app.get(
   }),
   (c) => {
     if (c.req.header("Accept") === "application/nostr+json") return c.json(infomation);
-    return c.text("Welcome to Simple Nostr Relay");
+    return c.text("Welcome to Simple Nostr Relay\nhttps://github.com/inaridiy/simple-nostr-relay");
   },
 );
 
