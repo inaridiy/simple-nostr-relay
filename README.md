@@ -3,6 +3,10 @@
 A simple [nostr](https://github.com/nostr-protocol/nostr) relay written in TypeScript and Hono.
 It supports the main Nostr Protocol and stores data in an SQLite database.
 
+# Hosted Relay (not recommended for production)
+
+https://nostr.inaridiy.com/
+
 ## Features
 
 - [x] NIP-01: [Basic protocol flow description](https://github.com/nostr-protocol/nips/blob/master/01.md)
