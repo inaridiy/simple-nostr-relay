@@ -125,7 +125,7 @@ app.get(
   }),
   (c) => {
     if (c.req.header("Accept") === "application/nostr+json") return c.json(infomation);
-    return c.text("Honostr Test Relay");
+    return c.text("Welcome to Simple Nostr Relay");
   },
 );
 
