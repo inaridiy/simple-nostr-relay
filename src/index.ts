@@ -13,7 +13,7 @@ import { cors } from "hono/cors";
 import type { WSContext } from "hono/ws";
 
 const app = new Hono();
-const port = 3000;
+const port = process.env.PORT ? Number(process.env.PORT) : 3000;
 
 const sqlite = new Database("database.sqlite");
 const db = drizzle(sqlite, { schema });
