@@ -22,6 +22,6 @@ import type { Event, PrimitiveTags } from "./core";
  */
 export interface DeletionEvent extends Event {
   kind: 5;
-  tags: PrimitiveTags["E" | "A" | "K"][];
+  tags: PrimitiveTags["E" | "A" | "K" | "COMMON"][];
   content: string | "";
 }

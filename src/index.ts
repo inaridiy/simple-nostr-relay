@@ -62,7 +62,7 @@ const processEvent = async (ws: WSContext, payload: ClientToRelayPayload<"EVENT"
     else if (isParameterizedReplaceableEvent(event)) await repository.saveParameterizedReplaceableEvent(event);
     else if (event.kind === 5) {
       const result = validateDeletionEvent(event);
-      if (!result.success) throw new Error("invalid: deletion event is invalid");
+      if (!result.success) throw new Error(`invalid: deletion event is invalid reason: ${JSON.stringify(result.errors, null, 2)}`);
       await repository.deleteEventsByDeletionEvent(result.data);
       await repository.saveEvent(event);
     } else await repository.saveEvent(event);

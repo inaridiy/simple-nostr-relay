@@ -70,6 +70,7 @@ export interface Event {
 export type WithRecommendedRelayUrl<E extends [string, string]> = E | [...E, recommendedRelayUrl: string];
 
 export type PrimitiveTags = {
+  COMMON: [string, ...string[]];
   /** ["d", <identify>] */
   D: ["d", value: string];
   /** ["e", <32-bytes lowercase hex of the id of another event>, <recommended relay URL, optional>] */
