@@ -5,7 +5,7 @@ It supports the main Nostr Protocol and stores data in an SQLite database.
 
 # Hosted Relay (not recommended for production)
 
-https://nostr.inaridiy.com/
+wss://nostr.inaridiy.com/
 
 ## Features
 

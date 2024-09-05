@@ -13,6 +13,7 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import type { WSContext } from "hono/ws";
+import { uuidv7 } from "uuidv7";
 import { isParameterizedReplaceableEvent, isReplaceableEvent, isTemporaryEvent } from "./nostr/utils";
 
 const infomation: RelayInfomaion = {
@@ -123,7 +124,7 @@ app.all("/*", cors());
 app.get(
   "/",
   upgradeWebSocket(() => {
-    const conId = crypto.randomUUID();
+    const conId = uuidv7();
     console.log("onOpen", conId);
 
     return {

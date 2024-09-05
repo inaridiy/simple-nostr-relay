@@ -1,6 +1,6 @@
 import { type SQL, type SQLWrapper, and, count, desc, eq, gte, inArray, like, lte, or, sql } from "drizzle-orm";
 import type { BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
-import { type SQLiteColumn, union } from "drizzle-orm/sqlite-core";
+import type { SQLiteColumn } from "drizzle-orm/sqlite-core";
 import { uuidv7 } from "uuidv7";
 import * as schema from "./database";
 import { getTagValuesByName } from "./nostr/utils";
@@ -50,6 +50,7 @@ const toInsertableEvent = (event: Event) => {
     content: event.content,
     first_seen: new Date(),
     created_at: new Date(event.created_at * 1000),
+    raw: event,
   };
   const insertableTags = event.tags.map((tag) => ({
     id: uuidv7(),
@@ -199,21 +200,15 @@ export const createRepository = (db: BetterSQLite3Database<typeof schema>, optio
   },
   queryEventsByFilters: async (filters: SubscriptionFilter[]): Promise<Event[]> => {
     if (filters.length === 0) return [];
-    const queries = filters.map((filter) =>
-      db
-        .select({ event: schema.events, tag: schema.tags })
-        .from(schema.events)
-        .leftJoin(schema.tags, eq(schema.events.id, schema.tags.eventId))
-        .where(buildQuery(filter, options)),
-    );
 
-    const events =
-      queries.length === 1
-        ? await queries[0].limit(Math.max(2000, filters[0].limit ?? 100)).orderBy(desc(schema.events.created_at))
-        : await union(queries[0], queries[1], ...queries.slice(2))
-            .limit(Math.max(2000, ...filters.map((filter) => filter.limit ?? 100)))
-            .orderBy(desc(schema.events.created_at));
+    const results = await db
+      .selectDistinct({ event: schema.events.raw })
+      .from(schema.events)
+      .leftJoin(schema.tags, eq(schema.events.id, schema.tags.eventId))
+      .limit(Math.max(2000, ...filters.map((filter) => filter.limit ?? 100)))
+      .where(or(...filters.map((filter) => buildQuery(filter, options))))
+      .orderBy(desc(schema.events.created_at));
 
-    return aggregateEvent(events);
+    return results.map((result) => result.event as Event);
   },
 });

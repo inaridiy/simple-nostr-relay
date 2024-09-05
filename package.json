@@ -36,6 +36,7 @@
     "drizzle-orm": "^0.30.10",
     "hono": "^4.3.11",
     "typia": "^6.5.0",
+    "uuidv7": "^1.0.2",
     "ws": "^8.17.0"
   },
   "devDependencies": {

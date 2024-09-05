@@ -53,6 +53,9 @@ importers:
       typia:
         specifier: ^6.5.0
         version: 6.5.0(typescript@5.5.2)
+      uuidv7:
+        specifier: ^1.0.2
+        version: 1.0.2
       ws:
         specifier: ^8.17.0
         version: 8.17.0(bufferutil@4.0.8)
@@ -2717,6 +2720,10 @@ packages:
 
   uuid@9.0.1:
     resolution: {integrity: sha512-b+1eJOlsR9K8HJpow9Ok3fiWOWSIcIzXodvv0rQjVoOVNpWMpxf1wZNpt4y9h10odCNrqnYp1OBzRktckBe3sA==}
+    hasBin: true
+
+  uuidv7@1.0.2:
+    resolution: {integrity: sha512-8JQkH4ooXnm1JCIhqTMbtmdnYEn6oKukBxHn1Ic9878jMkL7daTI7anTExfY18VRCX7tcdn5quzvCb6EWrR8PA==}
     hasBin: true
 
   vite-node@2.0.5:
@@ -5462,6 +5469,8 @@ snapshots:
   util-deprecate@1.0.2: {}
 
   uuid@9.0.1: {}
+
+  uuidv7@1.0.2: {}
 
   vite-node@2.0.5(@types/node@20.12.12):
     dependencies:
