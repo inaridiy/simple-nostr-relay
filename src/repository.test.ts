@@ -6,7 +6,7 @@ import Database from "better-sqlite3";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
-import { finalizeEvent, generateSecretKey, getPublicKey } from "nostr-tools/pure";
+import { finalizeEvent, generateSecretKey, getPublicKey, verifyEvent } from "nostr-tools/pure";
 import { beforeAll, describe, expect, it } from "vitest";
 import { verifyDelegation } from "./nostr/nips26";
 import { createRepository } from "./repository";
