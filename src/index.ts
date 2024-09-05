@@ -1,4 +1,3 @@
-import "./otel/instrumentation";
 import * as schema from "@/database";
 import { isEventMatchSomeFilters } from "@/nostr/isEventMatchSomeFilters";
 import { verifyEvent } from "@/nostr/verifyEvent";
