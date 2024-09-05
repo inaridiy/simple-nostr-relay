@@ -13,7 +13,6 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import type { WSContext } from "hono/ws";
-import { uuidv7 } from "uuidv7";
 import { isParameterizedReplaceableEvent, isReplaceableEvent, isTemporaryEvent } from "./nostr/utils";
 
 const infomation: RelayInfomaion = {
@@ -50,8 +49,8 @@ const boradcastEvent = (event: Event) => {
   }
 };
 
-const processEvent = async (ws: WSContext, _connectionId: string, payload: ClientToRelayPayload<"EVENT">) => {
-  console.debug("processEvent", payload);
+const processEvent = async (ws: WSContext, connectionId: string, payload: ClientToRelayPayload<"EVENT">) => {
+  console.debug("processEvent", connectionId, payload[1].id);
 
   const [_, event] = payload;
   const isValid = verifyEvent(event);
@@ -98,6 +97,7 @@ const processReq = async (ws: WSContext, connectionId: string, payload: ClientTo
     subscirptions.push({ connectionId, subscriptionId, filters, onMessage });
 
     const events = await repository.queryEventsByFilters(filters);
+    console.log(events.map((e) => e.id));
     for (const event of events) wsSendPayload(ws, ["EVENT", subscriptionId, event]);
     wsSendPayload(ws, ["EOSE", subscriptionId]);
   } catch (e) {
@@ -123,7 +123,7 @@ app.all("/*", cors());
 app.get(
   "/",
   upgradeWebSocket(() => {
-    const conId = uuidv7();
+    const conId = crypto.randomUUID();
     console.log("onOpen", conId);
 
     return {

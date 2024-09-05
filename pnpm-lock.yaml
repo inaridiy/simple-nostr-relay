@@ -53,12 +53,6 @@ importers:
       typia:
         specifier: ^6.5.0
         version: 6.5.0(typescript@5.5.2)
-      uuidv7:
-        specifier: ^1.0.1
-        version: 1.0.1
-      valibot:
-        specifier: ^0.36.0
-        version: 0.36.0
       ws:
         specifier: ^8.17.0
         version: 8.17.0(bufferutil@4.0.8)
@@ -2724,13 +2718,6 @@ packages:
   uuid@9.0.1:
     resolution: {integrity: sha512-b+1eJOlsR9K8HJpow9Ok3fiWOWSIcIzXodvv0rQjVoOVNpWMpxf1wZNpt4y9h10odCNrqnYp1OBzRktckBe3sA==}
     hasBin: true
-
-  uuidv7@1.0.1:
-    resolution: {integrity: sha512-2noB909GbI352dKfASOY6VHHl59KvevZ1FF8gCAXCwDyrt2kkZhuFbczF9udqTfeejiRYEmO4wzUZ0WhVP+IUA==}
-    hasBin: true
-
-  valibot@0.36.0:
-    resolution: {integrity: sha512-CjF1XN4sUce8sBK9TixrDqFM7RwNkuXdJu174/AwmQUB62QbCQADg5lLe8ldBalFgtj1uKj+pKwDJiNo4Mn+eQ==}
 
   vite-node@2.0.5:
     resolution: {integrity: sha512-LdsW4pxj0Ot69FAoXZ1yTnA9bjGohr2yNBU7QKRxpz8ITSkhuDl6h3zS/tvgz4qrNjeRnvrWeXQ8ZF7Um4W00Q==}
@@ -5475,10 +5462,6 @@ snapshots:
   util-deprecate@1.0.2: {}
 
   uuid@9.0.1: {}
-
-  uuidv7@1.0.1: {}
-
-  valibot@0.36.0: {}
 
   vite-node@2.0.5(@types/node@20.12.12):
     dependencies:
