@@ -53,10 +53,10 @@ const processEvent = async (ws: WSContext, payload: ClientToRelayPayload<"EVENT"
   const isValid = verifyEvent(event);
   if (!isValid) return wsSendPayload(ws, ["OK", event.id, false, "invalid: event signature is invalid"]);
 
-  const existingEvent = await repository.queryEventById(event.id);
-  if (existingEvent) return wsSendPayload(ws, ["OK", event.id, false, "duplicate: event already exists"]);
-
   try {
+    const existingEvent = await repository.queryEventById(event.id);
+    if (existingEvent) return wsSendPayload(ws, ["OK", event.id, false, "duplicate: event already exists"]);
+
     if (isReplaceableEvent(event)) await repository.saveReplaceableEvent(event);
     else if (isTemporaryEvent(event)) await repository.saveTemporaryEvent(event);
     else if (isParameterizedReplaceableEvent(event)) await repository.saveParameterizedReplaceableEvent(event);
@@ -68,13 +68,12 @@ const processEvent = async (ws: WSContext, payload: ClientToRelayPayload<"EVENT"
     } else await repository.saveEvent(event);
 
     wsSendPayload(ws, ["OK", event.id, true, ""]);
+    boradcastEvent(event);
   } catch (error) {
     let message = error instanceof Error ? error.message : "error: unknown error";
     message = message.includes(":") ? message : `error: ${message}`;
     wsSendPayload(ws, ["OK", event.id, false, message as ReasonMessage]);
   }
-
-  boradcastEvent(event);
 };
 
 const processReq = async (ws: WSContext, payload: ClientToRelayPayload<"REQ">) => {
