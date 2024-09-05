@@ -2,9 +2,9 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "start": "tsx src/index.ts",
-    "start:otel": "tsx --require ./otel/instrumentation.ts src/index.ts",
-    "start:baselime": "tsx --require ./otel/baselime.ts src/index.ts",
+    "start": "dotenvx run -- tsx src/index.ts",
+    "start:otel": "dotenvx run -- tsx --require ./otel/instrumentation.ts src/index.ts",
+    "start:baselime": "dotenvx run -- tsx --require ./otel/baselime.ts src/index.ts",
     "format": "biome format . --write",
     "lint": "biome check .",
     "lint:fix": "pnpm lint --apply",
@@ -42,6 +42,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "1.7.3",
+    "@dotenvx/dotenvx": "^1.14.0",
     "@types/better-sqlite3": "^7.6.10",
     "@types/node": "^20.11.17",
     "@types/ws": "^8.5.10",
