@@ -9,12 +9,14 @@ import { validateDeletionEvent } from "@/validators/validateDeletionEvent";
 import { serve } from "@hono/node-server";
 import { createNodeWebSocket } from "@hono/node-ws";
 import Database from "better-sqlite3";
+import { count, gt } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import type { WSContext } from "hono/ws";
 import { uuidv7 } from "uuidv7";
 import { isParameterizedReplaceableEvent, isReplaceableEvent, isTemporaryEvent } from "./nostr/utils";
+import { IndexPage } from "./pages";
 
 const infomation: RelayInfomaion = {
   name: "Honostr Test Relay",
@@ -97,8 +99,10 @@ const processReq = async (ws: WSContext, connectionId: string, payload: ClientTo
     const onMessage = (event: Event) => wsSendPayload(ws, ["EVENT", subscriptionId, event]);
     subscirptions.push({ connectionId, subscriptionId, filters, onMessage });
 
+    const now = performance.now();
     const events = await repository.queryEventsByFilters(filters);
-    console.log(events.map((e) => e.id));
+    console.log(`queryEventsByFilters: ${performance.now() - now}ms`);
+
     for (const event of events) wsSendPayload(ws, ["EVENT", subscriptionId, event]);
     wsSendPayload(ws, ["EOSE", subscriptionId]);
   } catch (e) {
@@ -148,9 +152,17 @@ app.get(
       },
     };
   }),
-  (c) => {
+  async (c) => {
     if (c.req.header("Accept") === "application/nostr+json") return c.json(infomation);
-    return c.text("Welcome to Simple Nostr Relay\nhttps://github.com/inaridiy/simple-nostr-relay");
+
+    const totalEvents = await db.select({ count: count() }).from(schema.events);
+    const totalIndexedTags = await db.select({ count: count() }).from(schema.tags);
+    const recentEvents = await db
+      .select({ count: count() })
+      .from(schema.events)
+      .where(gt(schema.events.first_seen, new Date(Date.now() - 24 * 60 * 60 * 1000)));
+
+    return c.html(IndexPage(totalEvents[0].count, totalIndexedTags[0].count, recentEvents[0].count));
   },
 );
 
