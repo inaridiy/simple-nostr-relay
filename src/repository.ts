@@ -1,11 +1,15 @@
-import { type SQL, type SQLWrapper, and, count, desc, eq, gte, inArray, like, lte, or, sql } from "drizzle-orm";
+import { type Span, SpanStatusCode, Tracer } from "@opentelemetry/api";
+import { type Query, type SQL, type SQLWrapper, and, count, desc, eq, gte, inArray, like, lte, or, sql } from "drizzle-orm";
 import type { BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
 import type { SQLiteColumn } from "drizzle-orm/sqlite-core";
 import { uuidv7 } from "uuidv7";
 import * as schema from "./database";
 import { getTagValuesByName } from "./nostr/utils";
+import { getTracer } from "./otel";
 import type { Event, SubscriptionFilter } from "./types/core";
 import type { DeletionEvent } from "./types/nip9";
+
+const tracer = getTracer();
 
 type JoinedRow = {
   event: typeof schema.events.$inferInsert;
@@ -99,116 +103,249 @@ const buildQuery = (filter: SubscriptionFilter, opt: RepositoryOptions): SQL | u
   return and(...queries);
 };
 
+type AbstractQuery = {
+  toSQL: () => Query;
+};
+
+const otelEventAttributeHelper = (span: Span, event: Event) => {
+  span.setAttribute("event.id", event.id);
+  span.setAttribute("event.pubkey", event.pubkey);
+  span.setAttribute("event.kind", event.kind);
+};
+
+const otelQueryHelper = <T extends AbstractQuery>(tracer: Tracer, eventName: string, query: T) => {
+  return tracer.startActiveSpan(eventName, async (span) => {
+    try {
+      const sql = query.toSQL();
+      span.setAttribute("sql", sql.sql);
+      span.setAttribute(
+        "params",
+        sql.params.map((param) => JSON.stringify(param)),
+      );
+      return await query;
+    } catch (e) {
+      span.recordException(e as Error);
+
+      throw e;
+    }
+  });
+};
+
 export type RepositoryOptions = {
   enableNIP26?: boolean;
 };
 
 export const createRepository = (db: BetterSQLite3Database<typeof schema>, options: RepositoryOptions = {}) => ({
   saveEvent: async (event: Event): Promise<void> => {
-    const { insertableEvent, insertableTags } = toInsertableEvent(event);
+    return tracer.startActiveSpan("repository.saveEvent", async (span) => {
+      otelEventAttributeHelper(span, event);
+      try {
+        const { insertableEvent, insertableTags } = toInsertableEvent(event);
 
-    await db.transaction(async (tx) => {
-      await tx.insert(schema.events).values(insertableEvent);
-      insertableTags.length > 0 && (await tx.insert(schema.tags).values(insertableTags));
+        await db.transaction(async (tx) => {
+          await tx.insert(schema.events).values(insertableEvent);
+          insertableTags.length > 0 && (await tx.insert(schema.tags).values(insertableTags));
+        });
+        span.setStatus({ code: SpanStatusCode.OK, message: "OK" });
+      } catch (e_) {
+        const e = e_ as Error;
+        span.recordException(e);
+        span.setStatus({ code: SpanStatusCode.ERROR, message: e.message });
+        throw e;
+      }
     });
   },
   saveReplaceableEvent: async (event: Event): Promise<void> => {
-    const { insertableEvent, insertableTags } = toInsertableEvent(event);
+    return tracer.startActiveSpan("repository.saveReplaceableEvent", async (span) => {
+      otelEventAttributeHelper(span, event);
+      try {
+        const { insertableEvent, insertableTags } = toInsertableEvent(event);
 
-    await db.transaction(async (tx) => {
-      await tx
-        .update(schema.events)
-        .set({ replaced: true })
-        .where(and(eq(schema.events.author, event.pubkey), eq(schema.events.kind, event.kind)));
-      await tx.insert(schema.events).values(insertableEvent);
-      insertableTags.length > 0 && (await tx.insert(schema.tags).values(insertableTags));
+        await db.transaction(async (tx) => {
+          await tx
+            .update(schema.events)
+            .set({ replaced: true })
+            .where(and(eq(schema.events.author, event.pubkey), eq(schema.events.kind, event.kind)));
+          await tx.insert(schema.events).values(insertableEvent);
+          insertableTags.length > 0 && (await tx.insert(schema.tags).values(insertableTags));
+        });
+        span.setStatus({ code: SpanStatusCode.OK, message: "OK" });
+      } catch (e_) {
+        const e = e_ as Error;
+        span.recordException(e);
+        span.setStatus({ code: SpanStatusCode.ERROR, message: e.message });
+        throw e;
+      }
     });
   },
   saveTemporaryEvent: async (_event: Event): Promise<void> => {
-    /* Do nothing */
+    return tracer.startActiveSpan("repository.saveTemporaryEvent", async (span) => {
+      span.setAttribute("event.id", _event.id);
+      span.setAttribute("event.pubkey", _event.pubkey);
+      span.setAttribute("event.kind", _event.kind);
+      /* Do nothing */
+      span.setStatus({ code: SpanStatusCode.OK, message: "OK" });
+    });
   },
   saveParameterizedReplaceableEvent: async (event: Event): Promise<void> => {
-    const { insertableEvent, insertableTags } = toInsertableEvent(event);
+    return tracer.startActiveSpan("repository.saveParameterizedReplaceableEvent", async (span) => {
+      otelEventAttributeHelper(span, event);
+      try {
+        const { insertableEvent, insertableTags } = toInsertableEvent(event);
 
-    const d = getTagValuesByName(event, "d");
-    if (d.length !== 1) throw new Error("invalid: Parameterized replaceable event should not have d tag");
-    const [dIdentifier] = d;
+        const d = getTagValuesByName(event, "d");
+        if (d.length !== 1) throw new Error("invalid: Parameterized replaceable event should not have d tag");
+        const [dIdentifier] = d;
 
-    await db.transaction(async (tx) => {
-      await tx
-        .update(schema.events)
-        .set({ replaced: true })
-        .where(and(eq(schema.events.author, event.pubkey), eq(schema.events.kind, event.kind), hasDIdentifierQueryHelper(dIdentifier)));
-      await tx.insert(schema.events).values(insertableEvent);
-      insertableTags.length > 0 && (await tx.insert(schema.tags).values(insertableTags));
+        await db.transaction(async (tx) => {
+          await tx
+            .update(schema.events)
+            .set({ replaced: true })
+            .where(and(eq(schema.events.author, event.pubkey), eq(schema.events.kind, event.kind), hasDIdentifierQueryHelper(dIdentifier)));
+          await tx.insert(schema.events).values(insertableEvent);
+          insertableTags.length > 0 && (await tx.insert(schema.tags).values(insertableTags));
+        });
+        span.setStatus({ code: SpanStatusCode.OK, message: "OK" });
+      } catch (e_) {
+        const e = e_ as Error;
+        span.recordException(e);
+        span.setStatus({ code: SpanStatusCode.ERROR, message: e.message });
+        throw e;
+      }
     });
   },
   deleteEventsByDeletionEvent: async (event: DeletionEvent): Promise<void> => {
-    const e = getTagValuesByName(event, "e");
-    const a = getTagValuesByName(event, "a");
-    const k = getTagValuesByName(event, "k");
-    if (a.length === 0 && e.length === 0 && k.length === 0) return;
+    return tracer.startActiveSpan("repository.deleteEventsByDeletionEvent", async (span) => {
+      otelEventAttributeHelper(span, event);
+      try {
+        const e = getTagValuesByName(event, "e");
+        const a = getTagValuesByName(event, "a");
+        const k = getTagValuesByName(event, "k");
+        if (a.length === 0 && e.length === 0 && k.length === 0) return;
 
-    const authorQuery = options.enableNIP26
-      ? or(eq(schema.events.author, event.pubkey), eq(schema.events.detegator, event.pubkey))
-      : eq(schema.events.author, event.pubkey);
+        const authorQuery = options.enableNIP26
+          ? or(eq(schema.events.author, event.pubkey), eq(schema.events.detegator, event.pubkey))
+          : eq(schema.events.author, event.pubkey);
 
-    const queries = [];
-    if (e.length > 0) {
-      queries.push(and(inArray(schema.events.id, e), eq(schema.events.hidden, false), authorQuery));
-    }
-    if (a.length > 0) {
-      for (const aValue of a) {
-        const [kind, , dIdentifier] = aValue.split(":");
-        queries.push(
-          and(
-            eq(schema.events.kind, Number(kind)),
-            authorQuery,
-            eq(schema.events.hidden, false),
-            dIdentifier ? hasDIdentifierQueryHelper(dIdentifier) : undefined,
-          ),
-        );
+        const queries = [];
+        if (e.length > 0) {
+          queries.push(and(inArray(schema.events.id, e), eq(schema.events.hidden, false), authorQuery));
+        }
+        if (a.length > 0) {
+          for (const aValue of a) {
+            const [kind, , dIdentifier] = aValue.split(":");
+            queries.push(
+              and(
+                eq(schema.events.kind, Number(kind)),
+                authorQuery,
+                eq(schema.events.hidden, false),
+                dIdentifier ? hasDIdentifierQueryHelper(dIdentifier) : undefined,
+              ),
+            );
+          }
+        }
+        if (k.length > 0) {
+          queries.push(and(inArray(schema.events.kind, k.map(Number)), eq(schema.events.hidden, false), authorQuery));
+        }
+
+        const result = await db
+          .update(schema.events)
+          .set({ hidden: true })
+          .where(or(...queries));
+        span.setAttribute("result.changes", result.changes);
+        span.setStatus({ code: SpanStatusCode.OK, message: "OK" });
+      } catch (e_) {
+        const e = e_ as Error;
+        span.recordException(e);
+        span.setStatus({ code: SpanStatusCode.ERROR, message: e.message });
+        throw e;
       }
-    }
-    if (k.length > 0) {
-      queries.push(and(inArray(schema.events.kind, k.map(Number)), eq(schema.events.hidden, false), authorQuery));
-    }
-
-    await db
-      .update(schema.events)
-      .set({ hidden: true })
-      .where(or(...queries));
+    });
   },
   countEventsByFilters: async (filters: SubscriptionFilter[]): Promise<number> => {
-    if (filters.length === 0) return 0;
-    const result = await db
-      .select({ count: count(schema.events.id) })
-      .from(schema.events)
-      .leftJoin(schema.tags, eq(schema.events.id, schema.tags.eventId))
-      .where(or(...filters.map((filter) => buildQuery(filter, options))));
-    return result[0]?.count ?? 0;
+    return tracer.startActiveSpan("repository.countEventsByFilters", async (span) => {
+      try {
+        span.setAttribute(
+          "filters",
+          filters.map((f) => JSON.stringify(f)),
+        );
+        if (filters.length === 0) return 0;
+        const result = await otelQueryHelper(
+          tracer,
+          "repository.db.countEventsByFilters",
+          db
+            .select({ count: count(schema.events.id) })
+            .from(schema.events)
+            .leftJoin(schema.tags, eq(schema.events.id, schema.tags.eventId))
+            .where(or(...filters.map((filter) => buildQuery(filter, options)))),
+        );
+        span.setAttribute("result.count", result[0]?.count ?? 0);
+        span.setStatus({ code: SpanStatusCode.OK, message: "OK" });
+        return result[0]?.count ?? 0;
+      } catch (e_) {
+        const e = e_ as Error;
+        span.recordException(e);
+        span.setStatus({ code: SpanStatusCode.ERROR, message: e.message });
+        throw e;
+      }
+    });
   },
   queryEventById: async (id: string): Promise<Event | null> => {
-    const events = await db
-      .selectDistinct({ event: schema.events, tag: schema.tags })
-      .from(schema.events)
-      .leftJoin(schema.tags, eq(schema.events.id, schema.tags.eventId))
-      .where(and(eq(schema.events.id, id), eq(schema.events.hidden, false)));
+    return tracer.startActiveSpan("repository.queryEventById", async (span) => {
+      try {
+        const events = await otelQueryHelper(
+          tracer,
+          "repository.db.queryEventById",
+          db
+            .selectDistinct({ event: schema.events, tag: schema.tags })
+            .from(schema.events)
+            .leftJoin(schema.tags, eq(schema.events.id, schema.tags.eventId))
+            .where(and(eq(schema.events.id, id), eq(schema.events.hidden, false))),
+        );
 
-    if (events.length === 0) return null;
-    return aggregateEvent(events)[0];
+        if (events.length === 0) return null;
+        const event = events[0].event.raw as Event;
+        span.setAttribute("result.id", event.id);
+        span.setStatus({ code: SpanStatusCode.OK, message: "OK" });
+        return event;
+      } catch (e_) {
+        const e = e_ as Error;
+        span.recordException(e);
+        span.setStatus({ code: SpanStatusCode.ERROR, message: e.message });
+        throw e;
+      }
+    });
   },
   queryEventsByFilters: async (filters: SubscriptionFilter[]): Promise<Event[]> => {
-    if (filters.length === 0) return [];
+    return tracer.startActiveSpan("repository.queryEventsByFilters", async (span) => {
+      try {
+        span.setAttribute(
+          "filters",
+          filters.map((f) => JSON.stringify(f)),
+        );
+        if (filters.length === 0) return [];
 
-    const results = await db
-      .selectDistinct({ event: schema.events.raw })
-      .from(schema.events)
-      .leftJoin(schema.tags, eq(schema.events.id, schema.tags.eventId))
-      .limit(Math.max(2000, ...filters.map((filter) => filter.limit ?? 100)))
-      .where(or(...filters.map((filter) => buildQuery(filter, options))))
-      .orderBy(desc(schema.events.created_at));
+        const results = await otelQueryHelper(
+          tracer,
+          "repository.db.queryEventsByFilters",
+          db
+            .selectDistinct({ event: schema.events.raw })
+            .from(schema.events)
+            .leftJoin(schema.tags, eq(schema.events.id, schema.tags.eventId))
+            .limit(Math.max(2000, ...filters.map((filter) => filter.limit ?? 100)))
+            .where(or(...filters.map((filter) => buildQuery(filter, options))))
+            .orderBy(desc(schema.events.created_at)),
+        );
 
-    return results.map((result) => result.event as Event);
+        span.setAttribute("result.count", results.length);
+        span.setStatus({ code: SpanStatusCode.OK, message: "OK" });
+        return results.map((result) => result.event as Event);
+      } catch (e_) {
+        const e = e_ as Error;
+        span.recordException(e);
+        span.setStatus({ code: SpanStatusCode.ERROR, message: e.message });
+        throw e;
+      }
+    });
   },
 });
