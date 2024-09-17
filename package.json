@@ -1,10 +1,11 @@
 {
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx watch --require ./otel/console.ts src/index.ts",
     "start": "dotenvx run -- tsx src/index.ts",
-    "start:otel": "dotenvx run -- tsx --require ./otel/instrumentation.ts src/index.ts",
-    "start:baselime": "dotenvx run -- tsx --require ./otel/baselime.ts src/index.ts",
+    "start:otel:console": "dotenvx run -- tsx --require ./otel/console.ts src/index.ts",
+    "start:otel:http": "dotenvx run -- tsx --require ./otel/http.ts src/index.ts",
+    "start:otel:baselime": "dotenvx run -- tsx --require ./otel/baselime.ts src/index.ts",
     "format": "biome format . --write",
     "lint": "biome check .",
     "lint:fix": "pnpm lint --apply",
@@ -29,6 +30,8 @@
     "@noble/hashes": "^1.4.0",
     "@opentelemetry/api": "^1.8.0",
     "@opentelemetry/auto-instrumentations-node": "^0.50.0",
+    "@opentelemetry/exporter-metrics-otlp-proto": "^0.53.0",
+    "@opentelemetry/exporter-trace-otlp-proto": "^0.53.0",
     "@opentelemetry/sdk-metrics": "^1.26.0",
     "@opentelemetry/sdk-node": "^0.53.0",
     "@opentelemetry/sdk-trace-node": "^1.26.0",

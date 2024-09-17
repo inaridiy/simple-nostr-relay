@@ -91,10 +91,12 @@ const otelQueryHelper = <T extends AbstractQuery>(tracer: Tracer, eventName: str
         "params",
         sql.params.map((param) => JSON.stringify(param)),
       );
-      return await query;
+      span.end();
+      const result = await query;
+      return result;
     } catch (e) {
       span.recordException(e as Error);
-
+      span.end();
       throw e;
     }
   });
@@ -116,10 +118,12 @@ export const createRepository = (db: BetterSQLite3Database<typeof schema>, optio
           insertableTags.length > 0 && (await tx.insert(schema.tags).values(insertableTags));
         });
         span.setStatus({ code: SpanStatusCode.OK, message: "OK" });
+        span.end();
       } catch (e_) {
         const e = e_ as Error;
         span.recordException(e);
         span.setStatus({ code: SpanStatusCode.ERROR, message: e.message });
+        span.end();
         throw e;
       }
     });
@@ -139,10 +143,12 @@ export const createRepository = (db: BetterSQLite3Database<typeof schema>, optio
           insertableTags.length > 0 && (await tx.insert(schema.tags).values(insertableTags));
         });
         span.setStatus({ code: SpanStatusCode.OK, message: "OK" });
+        span.end();
       } catch (e_) {
         const e = e_ as Error;
         span.recordException(e);
         span.setStatus({ code: SpanStatusCode.ERROR, message: e.message });
+        span.end();
         throw e;
       }
     });
@@ -154,6 +160,7 @@ export const createRepository = (db: BetterSQLite3Database<typeof schema>, optio
       span.setAttribute("event.kind", _event.kind);
       /* Do nothing */
       span.setStatus({ code: SpanStatusCode.OK, message: "OK" });
+      span.end();
     });
   },
   saveParameterizedReplaceableEvent: async (event: Event): Promise<void> => {
@@ -175,10 +182,12 @@ export const createRepository = (db: BetterSQLite3Database<typeof schema>, optio
           insertableTags.length > 0 && (await tx.insert(schema.tags).values(insertableTags));
         });
         span.setStatus({ code: SpanStatusCode.OK, message: "OK" });
+        span.end();
       } catch (e_) {
         const e = e_ as Error;
         span.recordException(e);
         span.setStatus({ code: SpanStatusCode.ERROR, message: e.message });
+        span.end();
         throw e;
       }
     });
@@ -226,10 +235,12 @@ export const createRepository = (db: BetterSQLite3Database<typeof schema>, optio
           .where(or(...queries));
         span.setAttribute("result.changes", result.changes);
         span.setStatus({ code: SpanStatusCode.OK, message: "OK" });
+        span.end();
       } catch (e_) {
         const e = e_ as Error;
         span.recordException(e);
         span.setStatus({ code: SpanStatusCode.ERROR, message: e.message });
+        span.end();
         throw e;
       }
     });
@@ -253,11 +264,13 @@ export const createRepository = (db: BetterSQLite3Database<typeof schema>, optio
         );
         span.setAttribute("result.count", result[0]?.count ?? 0);
         span.setStatus({ code: SpanStatusCode.OK, message: "OK" });
+        span.end();
         return result[0]?.count ?? 0;
       } catch (e_) {
         const e = e_ as Error;
         span.recordException(e);
         span.setStatus({ code: SpanStatusCode.ERROR, message: e.message });
+        span.end();
         throw e;
       }
     });
@@ -279,11 +292,13 @@ export const createRepository = (db: BetterSQLite3Database<typeof schema>, optio
         const event = events[0].event.raw as Event;
         span.setAttribute("result.id", event.id);
         span.setStatus({ code: SpanStatusCode.OK, message: "OK" });
+        span.end();
         return event;
       } catch (e_) {
         const e = e_ as Error;
         span.recordException(e);
         span.setStatus({ code: SpanStatusCode.ERROR, message: e.message });
+        span.end();
         throw e;
       }
     });
@@ -311,11 +326,13 @@ export const createRepository = (db: BetterSQLite3Database<typeof schema>, optio
 
         span.setAttribute("result.count", results.length);
         span.setStatus({ code: SpanStatusCode.OK, message: "OK" });
+        span.end();
         return results.map((result) => result.event as Event);
       } catch (e_) {
         const e = e_ as Error;
         span.recordException(e);
         span.setStatus({ code: SpanStatusCode.ERROR, message: e.message });
+        span.end();
         throw e;
       }
     });

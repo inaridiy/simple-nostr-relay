@@ -98,6 +98,8 @@ const processEvent = async (ws: WSContext, _connectionId: string, payload: Clien
       let message = error instanceof Error ? error.message : "error: unknown error";
       message = message.includes(":") ? message : `error: ${message}`;
       wsSendPayload(ws, ["OK", event.id, false, message as ReasonMessage]);
+    } finally {
+      span.end();
     }
   });
 };
@@ -123,6 +125,8 @@ const processReq = async (ws: WSContext, connectionId: string, payload: ClientTo
     } catch (e) {
       span.recordException(e as Error);
       span.setStatus({ code: SpanStatusCode.ERROR, message: "error" });
+    } finally {
+      span.end();
     }
   });
 };
@@ -144,6 +148,8 @@ const processCount = async (ws: WSContext, _conId: string, payload: ClientToRela
     } catch (e) {
       span.recordException(e as Error);
       span.setStatus({ code: SpanStatusCode.ERROR, message: "error" });
+    } finally {
+      span.end();
     }
   });
 };
@@ -158,6 +164,8 @@ const closeSubscription = async (_ws: WSContext, conId: string, payload: ClientT
     } catch (e) {
       span.recordException(e as Error);
       span.setStatus({ code: SpanStatusCode.ERROR, message: "error" });
+    } finally {
+      span.end();
     }
   });
 };
@@ -194,6 +202,8 @@ app.get(
               } catch (e) {
                 span.recordException(e as Error);
                 span.setStatus({ code: SpanStatusCode.ERROR, message: "error" });
+              } finally {
+                span.end();
               }
             });
           },
