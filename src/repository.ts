@@ -1,4 +1,4 @@
-import { type Span, SpanStatusCode, Tracer } from "@opentelemetry/api";
+import { type Span, SpanStatusCode, type Tracer } from "@opentelemetry/api";
 import { type Query, type SQL, type SQLWrapper, and, count, desc, eq, gte, inArray, like, lte, or, sql } from "drizzle-orm";
 import type { BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
 import type { SQLiteColumn } from "drizzle-orm/sqlite-core";
