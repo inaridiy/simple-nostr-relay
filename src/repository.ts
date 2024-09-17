@@ -11,37 +11,6 @@ import type { DeletionEvent } from "./types/nip9";
 
 const tracer = getTracer();
 
-type JoinedRow = {
-  event: typeof schema.events.$inferInsert;
-  tag: typeof schema.tags.$inferInsert | null;
-};
-
-const aggregateEvent = (rows: JoinedRow[]): Event[] => {
-  const aggregated = rows.reduce((acc: Record<string, Event>, { event, tag }) => {
-    const existingEvent = acc[event.id];
-    if (!existingEvent) {
-      acc[event.id] = {
-        id: event.id,
-        pubkey: event.author,
-        created_at: event.created_at.getTime() / 1000,
-        kind: event.kind,
-        tags: [],
-        content: event.content,
-        sig: event.sig,
-      };
-    }
-
-    const currentEvent = acc[event.id];
-    if (currentEvent && tag) {
-      currentEvent.tags.push([tag.name, tag.value, ...(tag.rest ?? [])]);
-    }
-
-    return acc;
-  }, {});
-
-  return Object.values(aggregated);
-};
-
 const toInsertableEvent = (event: Event) => {
   const insertableEvent = {
     id: event.id,
