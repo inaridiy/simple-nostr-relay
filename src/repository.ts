@@ -191,6 +191,9 @@ export const createRepository = (db: BetterSQLite3Database<typeof schema>, optio
         const a = getTagValuesByName(event, "a");
         const k = getTagValuesByName(event, "k");
         if (a.length === 0 && e.length === 0 && k.length === 0) return;
+        span.setAttribute("filters.e", e);
+        span.setAttribute("filters.a", a);
+        span.setAttribute("filters.k", k);
 
         const authorQuery = options.enableNIP26
           ? or(eq(schema.events.author, event.pubkey), eq(schema.events.detegator, event.pubkey))
