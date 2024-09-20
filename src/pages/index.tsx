@@ -33,9 +33,6 @@ export const IndexPage = (
             </a>
           </p>
 
-          <h2>Hosted Relay (not recommended for production)</h2>
-          <p>wss://nostr.inaridiy.com/</p>
-
           <section class="analytics">
             <h2>Hosted Relay (not recommended for production)</h2>
             <p>wss://nostr.inaridiy.com/</p>
