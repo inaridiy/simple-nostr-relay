@@ -1,11 +1,11 @@
 {
   "type": "module",
   "scripts": {
-    "dev": "tsx watch --require ./otel/console.ts src/index.ts",
+    "dev": "tsx watch --import ./otel/console.ts src/index.ts",
     "start": "dotenvx run -- tsx src/index.ts",
-    "start:otel:console": "dotenvx run -- tsx --require ./otel/console.ts src/index.ts",
-    "start:otel:http": "dotenvx run -- tsx --require ./otel/http.ts src/index.ts",
-    "start:otel:baselime": "dotenvx run -- tsx --require ./otel/baselime.ts src/index.ts",
+    "start:otel:console": "dotenvx run -- tsx --import ./otel/console.ts src/index.ts",
+    "start:otel:http": "dotenvx run -- tsx --import ./otel/http.ts src/index.ts",
+    "start:otel:baselime": "dotenvx run -- tsx --import ./otel/baselime.ts src/index.ts",
     "format": "biome format . --write",
     "lint": "biome check .",
     "lint:fix": "pnpm lint --apply",
