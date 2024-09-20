@@ -1,9 +1,9 @@
 import { BaselimeSDK } from "@baselime/node-opentelemetry";
-import { getNodeAutoInstrumentations } from "@opentelemetry/auto-instrumentations-node";
 
 const sdk = new BaselimeSDK({
   service: process.env.SERVICE_NAME,
-  instrumentations: [getNodeAutoInstrumentations({ "@opentelemetry/instrumentation-fs": { enabled: false } })],
+  baselimeKey: process.env.BASELIME_API_KEY,
+  instrumentations: [],
 });
 
 sdk.start();
