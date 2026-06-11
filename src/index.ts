@@ -11,6 +11,7 @@ import { getConnInfo } from "@hono/node-server/conninfo";
 import { createNodeWebSocket } from "@hono/node-ws";
 import { SpanStatusCode } from "@opentelemetry/api";
 import Database from "better-sqlite3";
+import { readFileSync } from "node:fs";
 import { count, gt } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { Hono } from "hono";
@@ -21,22 +22,21 @@ import { isParameterizedReplaceableEvent, isReplaceableEvent, isTemporaryEvent }
 import { getTracer } from "./otel";
 import { IndexPage } from "./pages";
 
-const infomation: RelayInfomaion = {
-  name: "Honostr Test Relay",
-  description: "Honostr Test Relay",
-  pubkey: "36d931a0c3e540393015c9ba9df8718b6259bf36180c9c4ef230ecc135c59c52",
-  contact: "inari@inaridiy.com",
+if (!process.env.RELAY_INFORMATION_FILE) throw new Error("RELAY_INFORMATION_FILE is required");
+
+const relayInformation = {
+  ...JSON.parse(readFileSync(process.env.RELAY_INFORMATION_FILE, "utf8")),
   supported_nips: [1, 2, 4, 9, 11, 45, 26],
-  software: "Honostr",
+  software: "simple-nostr-relay",
   version: "0.0.0",
-};
+} as RelayInfomaion;
 
 const app = new Hono();
 const port = process.env.PORT ? Number(process.env.PORT) : 3000;
 
 const tracer = getTracer();
 
-const sqlite = new Database("database.sqlite");
+const sqlite = new Database(process.env.DATABASE_PATH ?? "database.sqlite");
 const db = drizzle(sqlite, { schema });
 const repository = createRepository(db, { enableNIP26: true });
 
@@ -219,7 +219,7 @@ app.get(
     });
   }),
   async (c) => {
-    if (c.req.header("Accept") === "application/nostr+json") return c.json(infomation);
+    if (c.req.header("Accept") === "application/nostr+json") return c.json(relayInformation);
 
     const totalEvents = await db.select({ count: count() }).from(schema.events);
     const totalIndexedTags = await db.select({ count: count() }).from(schema.tags);

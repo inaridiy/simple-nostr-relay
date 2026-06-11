@@ -3,7 +3,7 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import * as schema from "../src/database";
 
-const sqlite = new Database("database.sqlite");
+const sqlite = new Database(process.env.DATABASE_PATH ?? "database.sqlite");
 const db = drizzle(sqlite, { schema });
 
 // This will run migrations on the database, skipping the ones already applied
