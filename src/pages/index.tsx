@@ -1,30 +1,35 @@
-export const IndexPage = (totalEvents: number, totalIndexedTags: number, recentEvents: number) => {
+import type { RelayInfomaion } from "@/types/nip11";
+
+export const IndexPage = (
+  totalEvents: number,
+  totalIndexedTags: number,
+  recentEvents: number,
+  relayInformation: RelayInfomaion,
+  relayUrl: string,
+) => {
   return (
     <html lang="en">
       <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Simple Nostr Relay</title>
+        <title>{relayInformation.name}</title>
         <link rel="stylesheet" href="https://fonts.xz.style/serve/inter.css" />
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@exampledev/new.css@1.1.2/new.min.css" />
       </head>
       <body>
         <header>
-          <h1>Simple Nostr Relay</h1>
+          <h1>{relayInformation.name}</h1>
         </header>
 
         <main>
+          <p>{relayInformation.description}</p>
           <p>
-            A simple <a href="https://github.com/nostr-protocol/nostr">nostr</a> relay written in TypeScript and Hono. It supports the main
-            Nostr Protocol and stores data in an SQLite database.
-          </p>
-          <p>
-            <strong>GitHub Repository:</strong> <a href="https://github.com/inaridiy/simple-nostr-relay">Simple Nostr Relay on GitHub</a>
+            <strong>Software:</strong> {relayInformation.software}
           </p>
 
           <section class="analytics">
-            <h2>Hosted Relay (not recommended for production)</h2>
-            <p>wss://nostr.inaridiy.com/</p>
+            <h2>Relay</h2>
+            <p>{relayUrl}</p>
             <ul>
               <li>
                 Total Events: <span id="totalEvents">{totalEvents}</span>

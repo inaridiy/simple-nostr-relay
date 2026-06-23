@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import * as schema from "@/database";
 import { isEventMatchSomeFilters } from "@/nostr/isEventMatchSomeFilters";
 import { verifyEvent } from "@/nostr/verifyEvent";
@@ -11,7 +12,6 @@ import { getConnInfo } from "@hono/node-server/conninfo";
 import { createNodeWebSocket } from "@hono/node-ws";
 import { SpanStatusCode } from "@opentelemetry/api";
 import Database from "better-sqlite3";
-import { readFileSync } from "node:fs";
 import { count, gt } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { Hono } from "hono";
@@ -176,6 +176,13 @@ const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
 
 app.all("/*", cors());
 
+const relayUrlFromRequest = (requestUrl: string, forwardedProto?: string) => {
+  const url = new URL(requestUrl);
+  const protocol = forwardedProto?.split(",")[0]?.trim() || url.protocol.replace(":", "");
+  url.protocol = protocol === "https" ? "wss:" : "ws:";
+  return url.toString();
+};
+
 app.get(
   "/",
   upgradeWebSocket((c) => {
@@ -228,7 +235,15 @@ app.get(
       .from(schema.events)
       .where(gt(schema.events.first_seen, new Date(Date.now() - 24 * 60 * 60 * 1000)));
 
-    return c.html(IndexPage(totalEvents[0].count, totalIndexedTags[0].count, recentEvents[0].count));
+    return c.html(
+      IndexPage(
+        totalEvents[0].count,
+        totalIndexedTags[0].count,
+        recentEvents[0].count,
+        relayInformation,
+        relayUrlFromRequest(c.req.url, c.req.header("x-forwarded-proto")),
+      ),
+    );
   },
 );
 
