@@ -1,12 +1,6 @@
 import type { RelayInfomaion } from "@/types/nip11";
 
-export const IndexPage = (
-  totalEvents: number,
-  totalIndexedTags: number,
-  recentEvents: number,
-  relayInformation: RelayInfomaion,
-  relayUrl: string,
-) => {
+export const IndexPage = (relayInformation: RelayInfomaion, relayUrl: string) => {
   return (
     <html lang="en">
       <head>
@@ -30,17 +24,6 @@ export const IndexPage = (
           <section class="analytics">
             <h2>Relay</h2>
             <p>{relayUrl}</p>
-            <ul>
-              <li>
-                Total Events: <span id="totalEvents">{totalEvents}</span>
-              </li>
-              <li>
-                Total Indexed Tags: <span id="totalUsers">{totalIndexedTags}</span>
-              </li>
-              <li>
-                Events in Last 24 Hours: <span id="recentEvents">{recentEvents}</span>
-              </li>
-            </ul>
           </section>
 
           <h2>Features</h2>

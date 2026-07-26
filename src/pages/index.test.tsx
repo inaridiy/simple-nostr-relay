@@ -15,11 +15,14 @@ const relayInformation: RelayInfomaion = {
 
 describe("IndexPage", () => {
   it("renders relay metadata and URL for the current deployment", () => {
-    const html = renderToString(IndexPage(10, 2, 1, relayInformation, "wss://nostr.yutakobayashi.com/"));
+    const html = renderToString(IndexPage(relayInformation, "wss://nostr.yutakobayashi.com/"));
 
     expect(html).toContain("Yuta Nostr Relay");
     expect(html).toContain("A personal Nostr relay.");
     expect(html).toContain("wss://nostr.yutakobayashi.com/");
     expect(html).not.toContain("wss://nostr.inaridiy.com/");
+    expect(html).not.toContain("Total Events");
+    expect(html).not.toContain("Total Indexed Tags");
+    expect(html).not.toContain("Events in Last 24 Hours");
   });
 });

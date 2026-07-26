@@ -12,7 +12,6 @@ import { getConnInfo } from "@hono/node-server/conninfo";
 import { createNodeWebSocket } from "@hono/node-ws";
 import { SpanStatusCode } from "@opentelemetry/api";
 import Database from "better-sqlite3";
-import { count, gt } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
@@ -228,22 +227,7 @@ app.get(
   async (c) => {
     if (c.req.header("Accept") === "application/nostr+json") return c.json(relayInformation);
 
-    const totalEvents = await db.select({ count: count() }).from(schema.events);
-    const totalIndexedTags = await db.select({ count: count() }).from(schema.tags);
-    const recentEvents = await db
-      .select({ count: count() })
-      .from(schema.events)
-      .where(gt(schema.events.first_seen, new Date(Date.now() - 24 * 60 * 60 * 1000)));
-
-    return c.html(
-      IndexPage(
-        totalEvents[0].count,
-        totalIndexedTags[0].count,
-        recentEvents[0].count,
-        relayInformation,
-        relayUrlFromRequest(c.req.url, c.req.header("x-forwarded-proto")),
-      ),
-    );
+    return c.html(IndexPage(relayInformation, relayUrlFromRequest(c.req.url, c.req.header("x-forwarded-proto"))));
   },
 );
 
