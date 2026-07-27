@@ -53,7 +53,7 @@ export const IndexPage = (totalEvents: number, totalIndexedTags: number, recentE
               ✅ NIP-11: <a href="https://github.com/nostr-protocol/nips/blob/master/11.md">Relay Information Document</a>
             </li>
             <li>
-              ✅ NIP-26: <a href="https://github.com/nostr-protocol/nips/blob/master/26.md">Event Delegation</a>
+              ✅ NIP-26: <a href="https://github.com/nostr-protocol/nips/blob/master/26.md">Event Delegation</a> (disabled by default)
             </li>
             <li>
               ❌ NIP-42: <a href="https://github.com/nostr-protocol/nips/blob/master/42.md">Authentication of clients to relays</a>

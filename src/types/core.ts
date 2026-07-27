@@ -244,7 +244,7 @@ export type RelayToClientPayloads = {
   /** EOSE payload: indicate the end of stored events and the beginning of events newly received in real-time. */
   EOSE: ["EOSE", subscriptionId: string];
   /** CLOSED payload: indicate that a subscription was ended on the server side. */
-  CLOSED: ["CLOSED", subscriptionId: ReasonMessage];
+  CLOSED: ["CLOSED", subscriptionId: string, message: ReasonMessage];
   /** NOTICE payload: send human-readable error messages or other things to clients. */
   NOTICE: ["NOTICE", message: HumanReadableReasonMessage];
   /** @link https://github.com/nostr-protocol/nips/blob/master/42.md */

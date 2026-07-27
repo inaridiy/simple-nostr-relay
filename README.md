@@ -13,7 +13,7 @@ wss://nostr.inaridiy.com/
 - [x] NIP-02: [Contact List and Petnames](https://github.com/nostr-protocol/nips/blob/master/02.md)
 - [x] NIP-09: [Event Deletion](https://github.com/nostr-protocol/nips/blob/master/09.md)
 - [x] NIP-11: [Relay Information Document](https://github.com/nostr-protocol/nips/blob/master/11.md)
-- [x] NIP-26: [Event Delegation](https://github.com/nostr-protocol/nips/blob/master/26.md)
+- [x] NIP-26: [Event Delegation](https://github.com/nostr-protocol/nips/blob/master/26.md) (unrecommended NIP; disabled by default, enable with `ENABLE_NIP26=true`)
 - [ ] NIP-42: [Authentication of clients to relays](https://github.com/nostr-protocol/nips/blob/master/42.md)
 - [x] NIP-45: [Event Counts](https://github.com/nostr-protocol/nips/blob/master/45.md)
 

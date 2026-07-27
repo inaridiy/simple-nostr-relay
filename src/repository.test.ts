@@ -125,7 +125,7 @@ describe("Event Repository", () => {
       const event = finalizeEvent(
         {
           kind: 2,
-          created_at: Math.floor(Date.now() / 1000),
+          created_at: Math.floor(Date.now() / 1000) - 10,
           tags: [],
           content: "hello",
         },
@@ -160,7 +160,7 @@ describe("Event Repository", () => {
       const event1 = finalizeEvent(
         {
           kind: 2,
-          created_at: Math.floor(Date.now() / 1000),
+          created_at: Math.floor(Date.now() / 1000) - 10,
           tags: [],
           content: "hello",
         },
@@ -170,7 +170,7 @@ describe("Event Repository", () => {
       const event2 = finalizeEvent(
         {
           kind: 2,
-          created_at: Math.floor(Date.now() / 1000),
+          created_at: Math.floor(Date.now() / 1000) - 10,
           tags: [],
           content: "hello",
         },
@@ -203,7 +203,7 @@ describe("Event Repository", () => {
       const event = finalizeEvent(
         {
           kind: 30000,
-          created_at: Math.floor(Date.now() / 1000),
+          created_at: Math.floor(Date.now() / 1000) - 10,
           tags: [["d", "hoooo"]],
           content: "hello",
         },
@@ -283,6 +283,65 @@ describe("Event Repository", () => {
 
       const savedEvents = await repository.queryEventsByFilters([{ kinds: [20000], authors: [getPublicKey(sk)] }]);
       expect(savedEvents).toHaveLength(0);
+    });
+    it("should not replace a replaceable event with an older one", async () => {
+      const sk = generateSecretKey();
+      const newerEvent = finalizeEvent(
+        {
+          kind: 2,
+          created_at: Math.floor(Date.now() / 1000),
+          tags: [],
+          content: "newer",
+        },
+        sk,
+      );
+      await repository.saveReplaceableEvent(newerEvent as unknown as Event);
+
+      const olderEvent = finalizeEvent(
+        {
+          kind: 2,
+          created_at: Math.floor(Date.now() / 1000) - 100,
+          tags: [],
+          content: "older, arrived late",
+        },
+        sk,
+      );
+      await repository.saveReplaceableEvent(olderEvent as unknown as Event);
+
+      const [latestEvent] = await repository.queryEventsByFilters([{ kinds: [2], authors: [getPublicKey(sk)] }]);
+      expect(latestEvent).toMatchObject(newerEvent);
+
+      const rawOldEvent = await db.query.events.findFirst({ where: eq(schema.events.id, olderEvent.id) });
+      expect(rawOldEvent).toBeUndefined();
+    });
+    it("should keep the event with the lowest id on equal created_at", async () => {
+      const sk = generateSecretKey();
+      const createdAt = Math.floor(Date.now() / 1000);
+      const eventA = finalizeEvent({ kind: 2, created_at: createdAt, tags: [], content: "a" }, sk);
+      const eventB = finalizeEvent({ kind: 2, created_at: createdAt, tags: [], content: "b" }, sk);
+      const [lowest, highest] = eventA.id < eventB.id ? [eventA, eventB] : [eventB, eventA];
+
+      await repository.saveReplaceableEvent(highest as unknown as Event);
+      await repository.saveReplaceableEvent(lowest as unknown as Event);
+
+      const [latestEvent] = await repository.queryEventsByFilters([{ kinds: [2], authors: [getPublicKey(sk)] }]);
+      expect(latestEvent).toMatchObject(lowest);
+    });
+    it("should save an event with a single-element tag", async () => {
+      const sk = generateSecretKey();
+      const event = finalizeEvent(
+        {
+          kind: 1,
+          created_at: Math.floor(Date.now() / 1000),
+          tags: [["client"]],
+          content: "hello",
+        },
+        sk,
+      );
+      await repository.saveEvent(event as unknown as Event);
+
+      const savedEvent = await repository.queryEventById(event.id);
+      expect(savedEvent).toMatchObject(event);
     });
   });
   describe("delete events", () => {
@@ -372,21 +431,8 @@ describe("Event Repository", () => {
       const deletedEvent = await repository.queryEventById(event1.id);
       expect(deletedEvent).toBe(null);
     });
-    it("should delete an event by k tag", async () => {
+    it("should reject a deletion event without e or a tags", async () => {
       const sk = generateSecretKey();
-      const event1 = finalizeEvent(
-        {
-          kind: 4,
-          created_at: Math.floor(Date.now() / 1000),
-          tags: [],
-          content: "hello",
-        },
-        sk,
-      );
-      await repository.saveEvent(event1 as unknown as Event);
-      const savedEvent = await repository.queryEventById(event1.id);
-      expect(savedEvent).toMatchObject(event1);
-
       const deletionEvent = finalizeEvent(
         {
           kind: 5,
@@ -396,9 +442,51 @@ describe("Event Repository", () => {
         },
         sk,
       );
+      await expect(repository.deleteEventsByDeletionEvent(deletionEvent as unknown as DeletionEvent)).rejects.toThrow();
+    });
+    it("should not delete events referenced only by a k tag", async () => {
+      const sk = generateSecretKey();
+      const event1 = finalizeEvent(
+        {
+          kind: 1,
+          created_at: Math.floor(Date.now() / 1000),
+          tags: [],
+          content: "hello",
+        },
+        sk,
+      );
+      await repository.saveEvent(event1 as unknown as Event);
+
+      const event2 = finalizeEvent(
+        {
+          kind: 4,
+          created_at: Math.floor(Date.now() / 1000),
+          tags: [],
+          content: "hello",
+        },
+        sk,
+      );
+      await repository.saveEvent(event2 as unknown as Event);
+
+      const deletionEvent = finalizeEvent(
+        {
+          kind: 5,
+          created_at: Math.floor(Date.now() / 1000),
+          tags: [
+            ["e", event1.id],
+            ["k", "4"],
+          ],
+          content: "delete for test",
+        },
+        sk,
+      );
       await repository.deleteEventsByDeletionEvent(deletionEvent as unknown as DeletionEvent);
-      const deletedEvent = await repository.queryEventById(event1.id);
-      expect(deletedEvent).toBe(null);
+
+      const deletedEvent1 = await repository.queryEventById(event1.id);
+      expect(deletedEvent1).toBe(null);
+
+      const untouchedEvent2 = await repository.queryEventById(event2.id);
+      expect(untouchedEvent2).toMatchObject(event2);
     });
     it("should only delete events that public key matches", async () => {
       const sk1 = generateSecretKey();
@@ -430,7 +518,10 @@ describe("Event Repository", () => {
         {
           kind: 5,
           created_at: Math.floor(Date.now() / 1000),
-          tags: [["k", "4"]],
+          tags: [
+            ["e", event1.id],
+            ["e", event2.id],
+          ],
           content: "delete for test",
         },
         sk1,
@@ -475,7 +566,7 @@ describe("Event Repository", () => {
           created_at: Math.floor(Date.now() / 1000),
           tags: [
             ["e", event1.id],
-            ["k", "4"],
+            ["e", event2.id],
           ],
           content: "delete for test",
         },
@@ -489,6 +580,85 @@ describe("Event Repository", () => {
 
       const deletedEvent2 = await repository.queryEventById(event2.id);
       expect(deletedEvent2).toBe(null);
+    });
+    it("should not delete versions newer than the deletion request by a tag", async () => {
+      const sk = generateSecretKey();
+      const oldVersion = finalizeEvent(
+        {
+          kind: 30000,
+          created_at: Math.floor(Date.now() / 1000) - 100,
+          tags: [["d", "profile"]],
+          content: "old",
+        },
+        sk,
+      );
+      const newVersion = finalizeEvent(
+        {
+          kind: 30000,
+          created_at: Math.floor(Date.now() / 1000) + 100,
+          tags: [["d", "profile"]],
+          content: "new",
+        },
+        sk,
+      );
+      await repository.saveEvent(oldVersion as unknown as Event);
+      await repository.saveEvent(newVersion as unknown as Event);
+
+      const deletionEvent = finalizeEvent(
+        {
+          kind: 5,
+          created_at: Math.floor(Date.now() / 1000),
+          tags: [["a", `30000:${getPublicKey(sk)}:profile`]],
+          content: "delete for test",
+        },
+        sk,
+      );
+      await repository.deleteEventsByDeletionEvent(deletionEvent as unknown as DeletionEvent);
+
+      const deletedOldVersion = await repository.queryEventById(oldVersion.id);
+      expect(deletedOldVersion).toBe(null);
+
+      const survivingNewVersion = await repository.queryEventById(newVersion.id);
+      expect(survivingNewVersion).toMatchObject(newVersion);
+    });
+    it("should not delete deletion events themselves", async () => {
+      const sk = generateSecretKey();
+      const event1 = finalizeEvent(
+        {
+          kind: 1,
+          created_at: Math.floor(Date.now() / 1000),
+          tags: [],
+          content: "hello",
+        },
+        sk,
+      );
+      await repository.saveEvent(event1 as unknown as Event);
+
+      const deletionEvent1 = finalizeEvent(
+        {
+          kind: 5,
+          created_at: Math.floor(Date.now() / 1000),
+          tags: [["e", event1.id]],
+          content: "delete for test",
+        },
+        sk,
+      );
+      await repository.deleteEventsByDeletionEvent(deletionEvent1 as unknown as DeletionEvent);
+      await repository.saveEvent(deletionEvent1 as unknown as Event);
+
+      const deletionEvent2 = finalizeEvent(
+        {
+          kind: 5,
+          created_at: Math.floor(Date.now() / 1000),
+          tags: [["e", deletionEvent1.id]],
+          content: "delete the deletion",
+        },
+        sk,
+      );
+      await repository.deleteEventsByDeletionEvent(deletionEvent2 as unknown as DeletionEvent);
+
+      const survivingDeletionEvent = await repository.queryEventById(deletionEvent1.id);
+      expect(survivingDeletionEvent).toMatchObject(deletionEvent1);
     });
   });
   describe("query events", async () => {
@@ -581,6 +751,55 @@ describe("Event Repository", () => {
 
       const count2 = await repository.countEventsByFilters([{ kinds: [1], authors: [getPublicKey(sk1)] }]);
       expect(count2).toBe(2);
+    });
+
+    it("should require all tag conditions to match", async () => {
+      const sk = generateSecretKey();
+      const referencedId = "0000000000000000000000000000000000000000000000000000000000000001";
+      const event = finalizeEvent(
+        {
+          kind: 7,
+          created_at: Math.floor(Date.now() / 1000),
+          tags: [
+            ["e", referencedId],
+            ["p", getPublicKey(sk2)],
+          ],
+          content: "+",
+        },
+        sk,
+      );
+      await repository.saveEvent(event as unknown as Event);
+
+      const bothMatch = await repository.queryEventsByFilters([{ "#e": [referencedId], "#p": [getPublicKey(sk2)] }]);
+      expect(bothMatch).toMatchObject([event]);
+
+      const onlyOneMatch = await repository.queryEventsByFilters([{ "#e": [referencedId], "#p": [getPublicKey(sk1)] }]);
+      expect(onlyOneMatch).toHaveLength(0);
+    });
+
+    it("should count an event with multiple tags once", async () => {
+      const sk = generateSecretKey();
+      const event = finalizeEvent(
+        {
+          kind: 6,
+          created_at: Math.floor(Date.now() / 1000),
+          tags: [
+            ["p", getPublicKey(sk2)],
+            ["p", getPublicKey(sk3)],
+          ],
+          content: "",
+        },
+        sk,
+      );
+      await repository.saveEvent(event as unknown as Event);
+
+      const count = await repository.countEventsByFilters([{ kinds: [6], authors: [getPublicKey(sk)] }]);
+      expect(count).toBe(1);
+    });
+
+    it("should respect the requested limit", async () => {
+      const events = await repository.queryEventsByFilters([{ kinds: [0], limit: 1 }]);
+      expect(events).toHaveLength(1);
     });
   });
 });

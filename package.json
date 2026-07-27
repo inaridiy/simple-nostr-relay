@@ -1,11 +1,8 @@
 {
   "type": "module",
   "scripts": {
-    "dev": "tsx watch --import ./otel/console.ts src/index.ts",
+    "dev": "tsx watch src/index.ts",
     "start": "dotenvx run -- tsx src/index.ts",
-    "start:otel:console": "dotenvx run -- tsx --import ./otel/console.ts src/index.ts",
-    "start:otel:http": "dotenvx run -- tsx --import ./otel/http.ts src/index.ts",
-    "start:otel:baselime": "dotenvx run -- tsx --import ./otel/baselime.ts src/index.ts",
     "format": "biome format . --write",
     "lint": "biome check .",
     "lint:fix": "pnpm lint --apply",
@@ -17,25 +14,12 @@
     "preinstall": "npx only-allow pnpm",
     "prepare": "ts-patch install && typia patch && pnpm simple-git-hooks"
   },
-  "pnpm": {
-    "overrides": {
-      "@opentelemetry/api": "^1.8.0"
-    }
-  },
   "dependencies": {
-    "@baselime/node-opentelemetry": "^0.5.8",
     "@hono/node-server": "^1.13.0",
     "@hono/node-ws": "1.0.4",
     "@noble/curves": "^1.4.2",
     "@noble/hashes": "^1.4.0",
-    "@opentelemetry/api": "^1.8.0",
-    "@opentelemetry/auto-instrumentations-node": "^0.50.0",
-    "@opentelemetry/exporter-metrics-otlp-proto": "^0.53.0",
-    "@opentelemetry/exporter-trace-otlp-proto": "^0.53.0",
-    "@opentelemetry/sdk-metrics": "^1.26.0",
-    "@opentelemetry/sdk-node": "^0.53.0",
-    "@opentelemetry/sdk-trace-node": "^1.26.0",
-    "better-sqlite3": "^10.0.0",
+    "better-sqlite3": "^12.11.1",
     "bufferutil": "^4.0.8",
     "drizzle-orm": "^0.30.10",
     "hono": "^4.6.2",
@@ -46,7 +30,7 @@
   "devDependencies": {
     "@biomejs/biome": "1.7.3",
     "@dotenvx/dotenvx": "^1.14.0",
-    "@types/better-sqlite3": "^7.6.10",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20.11.17",
     "@types/ws": "^8.5.10",
     "@vitest/coverage-v8": "^2.0.5",

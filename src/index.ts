@@ -7,9 +7,7 @@ import type { RelayInfomaion } from "@/types/nip11";
 import { validateClientToRelayPayload } from "@/validators/validateClientToRelayPayload";
 import { validateDeletionEvent } from "@/validators/validateDeletionEvent";
 import { serve } from "@hono/node-server";
-import { getConnInfo } from "@hono/node-server/conninfo";
 import { createNodeWebSocket } from "@hono/node-ws";
-import { SpanStatusCode } from "@opentelemetry/api";
 import Database from "better-sqlite3";
 import { count, gt } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
@@ -18,15 +16,24 @@ import { cors } from "hono/cors";
 import type { WSContext, WSEvents } from "hono/ws";
 import { uuidv7 } from "uuidv7";
 import { isParameterizedReplaceableEvent, isReplaceableEvent, isTemporaryEvent } from "./nostr/utils";
-import { getTracer } from "./otel";
 import { IndexPage } from "./pages";
+
+// NIP-26 is unrecommended; enable it explicitly if you need it.
+const enableNIP26 = process.env.ENABLE_NIP26 === "true";
+
+const LIMITS = {
+  maxMessageBytes: 128 * 1024,
+  maxSubscriptionsPerConnection: 20,
+  maxFiltersPerRequest: 10,
+  maxMessagesPerMinute: 300,
+};
 
 const infomation: RelayInfomaion = {
   name: "Honostr Test Relay",
   description: "Honostr Test Relay",
   pubkey: "36d931a0c3e540393015c9ba9df8718b6259bf36180c9c4ef230ecc135c59c52",
   contact: "inari@inaridiy.com",
-  supported_nips: [1, 2, 4, 9, 11, 45, 26],
+  supported_nips: [1, 2, 4, 9, 11, 45, ...(enableNIP26 ? [26] : [])],
   software: "Honostr",
   version: "0.0.0",
 };
@@ -34,11 +41,9 @@ const infomation: RelayInfomaion = {
 const app = new Hono();
 const port = process.env.PORT ? Number(process.env.PORT) : 3000;
 
-const tracer = getTracer();
-
 const sqlite = new Database("database.sqlite");
 const db = drizzle(sqlite, { schema });
-const repository = createRepository(db, { enableNIP26: true });
+const repository = createRepository(db, { enableNIP26 });
 
 type Subscription = {
   connectionId: string;
@@ -47,129 +52,79 @@ type Subscription = {
   onMessage: (event: Event) => void;
 };
 
-let subscirptions: Subscription[] = [];
+let subscriptions: Subscription[] = [];
+
+const removeSubscription = (connectionId: string, subscriptionId: string) => {
+  subscriptions = subscriptions.filter(
+    (subscription) => !(subscription.connectionId === connectionId && subscription.subscriptionId === subscriptionId),
+  );
+};
 
 const wsSendPayload = async (ws: WSContext, payload: RelayToClientPayload) => ws.send(JSON.stringify(payload));
 
-const boradcastEvent = (event: Event) => {
-  for (const { onMessage, filters } of subscirptions) {
-    if (isEventMatchSomeFilters(filters, event)) onMessage(event);
+const broadcastEvent = (event: Event) => {
+  for (const { onMessage, filters } of subscriptions) {
+    if (isEventMatchSomeFilters(filters, event, { enableNIP26 })) onMessage(event);
   }
 };
 
 const processEvent = async (ws: WSContext, _connectionId: string, payload: ClientToRelayPayload<"EVENT">) => {
-  return tracer.startActiveSpan("processEvent", async (span) => {
-    span.setAttribute("event.id", payload[1].id);
-    span.setAttribute("event.kind", payload[1].kind);
-    span.setAttribute("event.author", payload[1].pubkey);
+  const [_, event] = payload;
+  const isValid = verifyEvent(event, { enableNIP26 });
+  if (!isValid) return wsSendPayload(ws, ["OK", event.id, false, "invalid: event id or signature is invalid"]);
 
-    const [_, event] = payload;
-    const isValid = verifyEvent(event);
-    if (!isValid) {
-      span.setStatus({ code: SpanStatusCode.ERROR, message: "invalid: event signature is invalid" });
-      return wsSendPayload(ws, ["OK", event.id, false, "invalid: event signature is invalid"]);
-    }
+  try {
+    const existingEvent = await repository.queryEventById(event.id);
+    if (existingEvent) return wsSendPayload(ws, ["OK", event.id, false, "duplicate: event already exists"]);
 
-    try {
-      const existingEvent = await repository.queryEventById(event.id);
-      if (existingEvent) {
-        span.setStatus({ code: SpanStatusCode.ERROR, message: "duplicate: event already exists" });
-        return wsSendPayload(ws, ["OK", event.id, false, "duplicate: event already exists"]);
-      }
+    if (isReplaceableEvent(event)) await repository.saveReplaceableEvent(event);
+    else if (isTemporaryEvent(event)) await repository.saveTemporaryEvent(event);
+    else if (isParameterizedReplaceableEvent(event)) await repository.saveParameterizedReplaceableEvent(event);
+    else if (event.kind === 5) {
+      const result = validateDeletionEvent(event);
+      if (!result.success) return wsSendPayload(ws, ["OK", event.id, false, "invalid: deletion event is invalid"]);
+      await repository.deleteEventsByDeletionEvent(result.data);
+      await repository.saveEvent(event);
+    } else await repository.saveEvent(event);
 
-      if (isReplaceableEvent(event)) await repository.saveReplaceableEvent(event);
-      else if (isTemporaryEvent(event)) await repository.saveTemporaryEvent(event);
-      else if (isParameterizedReplaceableEvent(event)) await repository.saveParameterizedReplaceableEvent(event);
-      else if (event.kind === 5) {
-        const result = validateDeletionEvent(event);
-        if (!result.success) {
-          console.debug("error", payload, result.errors);
-          return wsSendPayload(ws, ["OK", event.id, false, "invalid: deletion event is invalid"]);
-        }
-        await repository.deleteEventsByDeletionEvent(result.data);
-        await repository.saveEvent(event);
-      } else await repository.saveEvent(event);
-
-      span.setStatus({ code: SpanStatusCode.OK, message: "OK" });
-      wsSendPayload(ws, ["OK", event.id, true, ""]);
-      boradcastEvent(event);
-    } catch (error) {
-      span.recordException(error as Error);
-      span.setStatus({ code: SpanStatusCode.ERROR, message: "error" });
-
-      let message = error instanceof Error ? error.message : "error: unknown error";
-      message = message.includes(":") ? message : `error: ${message}`;
-      wsSendPayload(ws, ["OK", event.id, false, message as ReasonMessage]);
-    } finally {
-      span.end();
-    }
-  });
+    wsSendPayload(ws, ["OK", event.id, true, ""]);
+    broadcastEvent(event);
+  } catch (error) {
+    let message = error instanceof Error ? error.message : "error: unknown error";
+    message = message.includes(":") ? message : `error: ${message}`;
+    wsSendPayload(ws, ["OK", event.id, false, message as ReasonMessage]);
+  }
 };
 
 const processReq = async (ws: WSContext, connectionId: string, payload: ClientToRelayPayload<"REQ">) => {
-  return tracer.startActiveSpan("processReq", async (span) => {
-    try {
-      const [_, subscriptionId, ...filters] = payload;
-      span.setAttribute("subscription.id", subscriptionId);
-      span.setAttribute(
-        "subscription.filters",
-        filters.map((filter) => JSON.stringify(filter)),
-      );
+  const [_, subscriptionId, ...filters] = payload;
 
-      const onMessage = (event: Event) => wsSendPayload(ws, ["EVENT", subscriptionId, event]);
-      subscirptions.push({ connectionId, subscriptionId, filters, onMessage });
+  if (filters.length > LIMITS.maxFiltersPerRequest) return wsSendPayload(ws, ["CLOSED", subscriptionId, "rate-limited: too many filters"]);
 
-      const events = await repository.queryEventsByFilters(filters);
-      span.setAttribute("events.count", events.length);
-      span.setStatus({ code: SpanStatusCode.OK, message: "OK" });
-      for (const event of events) wsSendPayload(ws, ["EVENT", subscriptionId, event]);
-      wsSendPayload(ws, ["EOSE", subscriptionId]);
-    } catch (e) {
-      span.recordException(e as Error);
-      span.setStatus({ code: SpanStatusCode.ERROR, message: "error" });
-    } finally {
-      span.end();
-    }
-  });
+  // A REQ with an already used subscription id replaces the old subscription (NIP-01).
+  removeSubscription(connectionId, subscriptionId);
+
+  const connectionSubscriptions = subscriptions.filter((subscription) => subscription.connectionId === connectionId);
+  if (connectionSubscriptions.length >= LIMITS.maxSubscriptionsPerConnection)
+    return wsSendPayload(ws, ["CLOSED", subscriptionId, "rate-limited: too many subscriptions"]);
+
+  const onMessage = (event: Event) => wsSendPayload(ws, ["EVENT", subscriptionId, event]);
+  subscriptions.push({ connectionId, subscriptionId, filters, onMessage });
+
+  const events = await repository.queryEventsByFilters(filters);
+  for (const event of events) wsSendPayload(ws, ["EVENT", subscriptionId, event]);
+  wsSendPayload(ws, ["EOSE", subscriptionId]);
 };
 
 const processCount = async (ws: WSContext, _conId: string, payload: ClientToRelayPayload<"COUNT">) => {
-  return tracer.startActiveSpan("processCount", async (span) => {
-    try {
-      const [_, subscriptionId, ...filters] = payload;
-      span.setAttribute("subscription.id", subscriptionId);
-      span.setAttribute(
-        "subscription.filters",
-        filters.map((filter) => JSON.stringify(filter)),
-      );
-
-      const count = await repository.countEventsByFilters(filters);
-      span.setAttribute("count", count);
-      span.setStatus({ code: SpanStatusCode.OK, message: "OK" });
-      wsSendPayload(ws, ["COUNT", subscriptionId, { count }]);
-    } catch (e) {
-      span.recordException(e as Error);
-      span.setStatus({ code: SpanStatusCode.ERROR, message: "error" });
-    } finally {
-      span.end();
-    }
-  });
+  const [_, subscriptionId, ...filters] = payload;
+  const count = await repository.countEventsByFilters(filters);
+  wsSendPayload(ws, ["COUNT", subscriptionId, { count }]);
 };
 
 const closeSubscription = async (_ws: WSContext, conId: string, payload: ClientToRelayPayload<"CLOSE">) => {
-  return tracer.startActiveSpan("closeSubscription", async (span) => {
-    try {
-      const [_, subscriptionId] = payload;
-      span.setAttribute("subscription.id", subscriptionId);
-      subscirptions = subscirptions.filter(({ connectionId, subscriptionId: subId }) => subId !== subscriptionId && connectionId !== conId);
-      span.setStatus({ code: SpanStatusCode.OK, message: "OK" });
-    } catch (e) {
-      span.recordException(e as Error);
-      span.setStatus({ code: SpanStatusCode.ERROR, message: "error" });
-    } finally {
-      span.end();
-    }
-  });
+  const [_, subscriptionId] = payload;
+  removeSubscription(conId, subscriptionId);
 };
 
 const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
@@ -178,45 +133,45 @@ app.all("/*", cors());
 
 app.get(
   "/",
-  upgradeWebSocket((c) => {
-    return tracer.startActiveSpan("ws.connection", (span): WSEvents => {
-      {
-        const conId = uuidv7();
-        const connInfo = getConnInfo(c);
-        span.setAttribute("connection.id", conId);
-        span.setAttribute("connection.remote", connInfo.remote.address ?? "unknown");
+  upgradeWebSocket((): WSEvents => {
+    const conId = uuidv7();
+    let windowStart = Date.now();
+    let messageCount = 0;
 
-        return {
-          onMessage(evt, ws) {
-            return tracer.startActiveSpan("ws.onMessage", async (span) => {
-              span.setAttribute("message.data", String(evt.data));
-              try {
-                const result = validateClientToRelayPayload(JSON.parse(evt.data as string));
-                if (!result.success) return span.setStatus({ code: SpanStatusCode.ERROR, message: "invalid payload" });
+    return {
+      async onMessage(evt, ws) {
+        try {
+          const data = String(evt.data);
+          if (data.length > LIMITS.maxMessageBytes) return wsSendPayload(ws, ["NOTICE", "invalid: message is too large"]);
 
-                const { data: payload } = result;
-                span.setAttribute("message.type", payload[0]);
-                span.setAttribute("message.payload", JSON.stringify(payload));
-                if (payload[0] === "EVENT") await processEvent(ws, conId, payload);
-                if (payload[0] === "REQ") await processReq(ws, conId, payload);
-                if (payload[0] === "CLOSE") await closeSubscription(ws, conId, payload);
-                if (payload[0] === "COUNT") await processCount(ws, conId, payload);
-              } catch (e) {
-                span.recordException(e as Error);
-                span.setStatus({ code: SpanStatusCode.ERROR, message: "error" });
-              } finally {
-                span.end();
-              }
-            });
-          },
-          onClose() {
-            span.setAttribute("connection.close", true);
-            span.end();
-            subscirptions = subscirptions.filter(({ connectionId }) => connectionId !== conId);
-          },
-        };
-      }
-    });
+          if (Date.now() - windowStart > 60_000) {
+            windowStart = Date.now();
+            messageCount = 0;
+          }
+          if (++messageCount > LIMITS.maxMessagesPerMinute) return wsSendPayload(ws, ["NOTICE", "rate-limited: slow down"]);
+
+          let json: unknown;
+          try {
+            json = JSON.parse(data);
+          } catch {
+            return wsSendPayload(ws, ["NOTICE", "invalid: payload is not valid JSON"]);
+          }
+          const result = validateClientToRelayPayload(json);
+          if (!result.success) return wsSendPayload(ws, ["NOTICE", "invalid: payload is invalid"]);
+
+          const { data: payload } = result;
+          if (payload[0] === "EVENT") await processEvent(ws, conId, payload);
+          if (payload[0] === "REQ") await processReq(ws, conId, payload);
+          if (payload[0] === "CLOSE") await closeSubscription(ws, conId, payload);
+          if (payload[0] === "COUNT") await processCount(ws, conId, payload);
+        } catch (e) {
+          console.error("failed to process message", e);
+        }
+      },
+      onClose() {
+        subscriptions = subscriptions.filter(({ connectionId }) => connectionId !== conId);
+      },
+    };
   }),
   async (c) => {
     if (c.req.header("Accept") === "application/nostr+json") return c.json(infomation);

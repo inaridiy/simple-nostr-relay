@@ -12,11 +12,11 @@ export const checkDelegationQuery = (event: Event, query: string): boolean => {
       const kind = Number(cond.split("=")[1]);
       if (kind !== event.kind) return false;
     } else if (cond.startsWith("created_at<")) {
-      const time = Number(cond.split("<")[1]);
-      if (time >= event.created_at) return false;
+      const time = Number(cond.slice("created_at<".length));
+      if (!(event.created_at < time)) return false;
     } else if (cond.startsWith("created_at>")) {
-      const time = Number(cond.split(">")[1]);
-      if (time <= event.created_at) return false;
+      const time = Number(cond.slice("created_at>".length));
+      if (!(event.created_at > time)) return false;
     } else {
       // Invalid condition
       return false;
