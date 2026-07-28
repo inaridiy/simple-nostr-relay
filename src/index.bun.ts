@@ -2,8 +2,8 @@ import { Database } from "bun:sqlite";
 // Experimental Bun entrypoint: `bun src/index.bun.ts`.
 // Same relay as src/index.ts with the runtime bits swapped: bun:sqlite instead of
 // better-sqlite3 (a V8-ABI addon Bun cannot load) and Bun.serve instead of @hono/node-server.
-// WebSockets are handled by Bun.serve directly — hono's createBunWebSocket adapter adds
-// ~1ms per message (828 vs 3000+ events/s in our benchmark); hono still serves the HTTP routes.
+// WebSockets go through Bun.serve directly; hono's createBunWebSocket adapter also works
+// and measured only ~6% slower, so this is a mild optimization, not a requirement.
 import * as schema from "@/database";
 import { isEventMatchSomeFilters } from "@/nostr/isEventMatchSomeFilters";
 import { verifyEvent } from "@/nostr/verifyEvent";
