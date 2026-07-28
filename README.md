@@ -51,7 +51,7 @@ the identical event set. All three relays returned byte-identical query results.
 
 | Relay                              | Writes (events/s) | Reads (queries/s) |
 | ---------------------------------- | ----------------- | ----------------- |
-| simple-nostr-relay (Node 24)       | 2,061             | **1,009**         |
+| simple-nostr-relay (Node 24)       | 1,960             | **966**           |
 | nostr-rs-relay 0.10.0 (Rust/SQLite)| 3,215             | 273               |
 | strfry 1.1.1 (C++/LMDB)            | **11,254**        | 749               |
 

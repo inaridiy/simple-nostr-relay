@@ -6,8 +6,7 @@ import type { ClientToRelayPayload, Event, ReasonMessage, RelayToClientPayload, 
 import type { RelayInfomaion } from "@/types/nip11";
 import { validateClientToRelayPayload } from "@/validators/validateClientToRelayPayload";
 import { validateDeletionEvent } from "@/validators/validateDeletionEvent";
-import { serve } from "@hono/node-server";
-import { createNodeWebSocket } from "@hono/node-ws";
+import { serve, upgradeWebSocket } from "@hono/node-server";
 import Database from "better-sqlite3";
 import { count, gt } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
@@ -15,6 +14,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import type { WSContext, WSEvents } from "hono/ws";
 import { uuidv7 } from "uuidv7";
+import { WebSocketServer } from "ws";
 import { config } from "./config";
 import { isParameterizedReplaceableEvent, isReplaceableEvent, isTemporaryEvent } from "./nostr/utils";
 import { IndexPage } from "./pages";
@@ -128,8 +128,6 @@ const closeSubscription = async (_ws: WSContext, conId: string, payload: ClientT
   removeSubscription(conId, subscriptionId);
 };
 
-const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
-
 app.all("/*", cors());
 
 app.get(
@@ -188,7 +186,10 @@ app.get(
   },
 );
 
-const server = serve({ fetch: app.fetch, port: config.port });
-injectWebSocket(server);
+serve({
+  fetch: app.fetch,
+  port: config.port,
+  websocket: { server: new WebSocketServer({ noServer: true }) },
+});
 
 console.log(`Server running at http://localhost:${config.port}`);
