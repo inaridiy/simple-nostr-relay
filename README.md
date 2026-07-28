@@ -42,6 +42,27 @@ Every variable is optional; see [`.env.example`](.env.example) for the full list
 | `MAX_MESSAGES_PER_MINUTE`                                        | `300`              | Client messages per minute per connection       |
 | `MAX_QUERY_LIMIT`                                                | `2000`             | Maximum events returned by a single query       |
 
+## Benchmark
+
+Casual single-run numbers (2026-07-28, 24-core Linux, loopback, single relay process each).
+5,000 pre-signed kind-1 events published over 16 connections, then 800 REQ queries with
+mixed filters over 8 connections; every relay started from an empty database and received
+the identical event set. All three relays returned byte-identical query results.
+
+| Relay                              | Writes (events/s) | Reads (queries/s) |
+| ---------------------------------- | ----------------- | ----------------- |
+| simple-nostr-relay (Node 24)       | 2,232             | **1,071**         |
+| nostr-rs-relay 0.10.0 (Rust/SQLite)| 3,215             | 273               |
+| strfry 1.1.1 (C++/LMDB)            | **11,254**        | 749               |
+
+Reads are the fastest of the three thanks to synchronous in-process SQLite (small-dataset
+caveat applies). Writes are within reach of the Rust relay since schnorr verification moved
+to WASM libsecp256k1 (`tiny-secp256k1`), which took the write path from 693 to 2,232 events/s.
+
+`src/index.bun.ts` is an experimental Bun entrypoint using `bun:sqlite` (better-sqlite3
+cannot load under Bun). It performs on par with the Node entrypoint at about half the memory;
+Node remains the supported runtime.
+
 ## License
 
 MIT
