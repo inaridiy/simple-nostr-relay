@@ -51,13 +51,13 @@ the identical event set. All three relays returned byte-identical query results.
 
 | Relay                              | Writes (events/s) | Reads (queries/s) |
 | ---------------------------------- | ----------------- | ----------------- |
-| simple-nostr-relay (Node 24)       | 2,232             | **1,071**         |
+| simple-nostr-relay (Node 24)       | 2,061             | **1,009**         |
 | nostr-rs-relay 0.10.0 (Rust/SQLite)| 3,215             | 273               |
 | strfry 1.1.1 (C++/LMDB)            | **11,254**        | 749               |
 
 Reads are the fastest of the three thanks to synchronous in-process SQLite (small-dataset
 caveat applies). Writes are within reach of the Rust relay since schnorr verification moved
-to WASM libsecp256k1 (`tiny-secp256k1`), which took the write path from 693 to 2,232 events/s.
+to WASM libsecp256k1 (`tiny-secp256k1`), roughly 3x faster than pure-JS verification.
 
 `src/index.bun.ts` is an experimental Bun entrypoint using `bun:sqlite` (better-sqlite3
 cannot load under Bun). It performs on par with the Node entrypoint at about half the memory;

@@ -5,3 +5,6 @@ allowBuilds:
   es5-ext: true
   esbuild: true
   simple-git-hooks: true
+
+overrides:
+  "@esbuild-kit/core-utils>esbuild": "^0.25.0"
