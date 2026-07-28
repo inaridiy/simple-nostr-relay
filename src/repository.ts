@@ -7,7 +7,7 @@ import { getTagValuesByName } from "./nostr/utils";
 import type { Event, SubscriptionFilter } from "./types/core";
 import type { DeletionEvent } from "./types/nip9";
 
-const MAX_QUERY_LIMIT = 2000;
+const DEFAULT_MAX_QUERY_LIMIT = 2000;
 
 const toInsertableEvent = (event: Event) => {
   const insertableEvent = {
@@ -95,6 +95,7 @@ const isNewestAmong = (event: Event, existing: { id: string; created_at: Date }[
 
 export type RepositoryOptions = {
   enableNIP26?: boolean;
+  maxQueryLimit?: number;
 };
 
 export const createRepository = (db: BetterSQLite3Database<typeof schema>, options: RepositoryOptions = {}) => ({
@@ -202,7 +203,7 @@ export const createRepository = (db: BetterSQLite3Database<typeof schema>, optio
   },
   queryEventsByFilters: async (filters: SubscriptionFilter[]): Promise<Event[]> => {
     if (filters.length === 0) return [];
-    const limit = Math.min(MAX_QUERY_LIMIT, Math.max(...filters.map((filter) => filter.limit ?? 100)));
+    const limit = Math.min(options.maxQueryLimit ?? DEFAULT_MAX_QUERY_LIMIT, Math.max(...filters.map((filter) => filter.limit ?? 100)));
 
     const results = await db
       .select({ raw: schema.events.raw })

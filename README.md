@@ -25,6 +25,23 @@ pnpm migrate # Create database
 pnpm run dev # Start the relay
 ```
 
+## Configuration
+
+All settings are read from environment variables and validated on startup in `src/config.ts`.
+Every variable is optional; see [`.env.example`](.env.example) for the full list.
+
+| Variable                                                        | Default            | Description                                     |
+| --------------------------------------------------------------- | ------------------ | ----------------------------------------------- |
+| `PORT`                                                           | `3000`             | Port the relay listens on                       |
+| `DATABASE_PATH`                                                  | `database.sqlite`  | Path to the SQLite database file                |
+| `ENABLE_NIP26`                                                   | (disabled)         | Set `true` to enable NIP-26 delegated events    |
+| `RELAY_NAME` / `RELAY_DESCRIPTION` / `RELAY_PUBKEY` / `RELAY_CONTACT` | –            | NIP-11 relay information                        |
+| `MAX_MESSAGE_BYTES`                                              | `131072`           | Maximum WebSocket message size                  |
+| `MAX_SUBSCRIPTIONS_PER_CONNECTION`                               | `20`               | Subscriptions per connection                    |
+| `MAX_FILTERS_PER_REQUEST`                                        | `10`               | Filters per REQ/COUNT                           |
+| `MAX_MESSAGES_PER_MINUTE`                                        | `300`              | Client messages per minute per connection       |
+| `MAX_QUERY_LIMIT`                                                | `2000`             | Maximum events returned by a single query       |
+
 ## License
 
 MIT

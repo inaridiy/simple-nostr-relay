@@ -15,35 +15,36 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import type { WSContext, WSEvents } from "hono/ws";
 import { uuidv7 } from "uuidv7";
+import { config } from "./config";
 import { isParameterizedReplaceableEvent, isReplaceableEvent, isTemporaryEvent } from "./nostr/utils";
 import { IndexPage } from "./pages";
 
-// NIP-26 is unrecommended; enable it explicitly if you need it.
-const enableNIP26 = process.env.ENABLE_NIP26 === "true";
-
-const LIMITS = {
-  maxMessageBytes: 128 * 1024,
-  maxSubscriptionsPerConnection: 20,
-  maxFiltersPerRequest: 10,
-  maxMessagesPerMinute: 300,
-};
+const { enableNIP26, limits } = config;
 
 const infomation: RelayInfomaion = {
-  name: "Honostr Test Relay",
-  description: "Honostr Test Relay",
-  pubkey: "36d931a0c3e540393015c9ba9df8718b6259bf36180c9c4ef230ecc135c59c52",
-  contact: "inari@inaridiy.com",
+  name: config.relay.name,
+  description: config.relay.description,
+  pubkey: config.relay.pubkey,
+  contact: config.relay.contact,
   supported_nips: [1, 2, 4, 9, 11, 45, ...(enableNIP26 ? [26] : [])],
   software: "Honostr",
   version: "0.0.0",
+  limitation: {
+    max_message_length: limits.maxMessageBytes,
+    max_subscriptions: limits.maxSubscriptionsPerConnection,
+    max_filters: limits.maxFiltersPerRequest,
+    max_limit: limits.maxQueryLimit,
+  },
 };
 
 const app = new Hono();
-const port = process.env.PORT ? Number(process.env.PORT) : 3000;
 
-const sqlite = new Database("database.sqlite");
+const sqlite = new Database(config.databasePath);
+// WAL lets concurrent reads proceed while a write is in progress.
+sqlite.pragma("journal_mode = WAL");
+sqlite.pragma("busy_timeout = 5000");
 const db = drizzle(sqlite, { schema });
-const repository = createRepository(db, { enableNIP26 });
+const repository = createRepository(db, { enableNIP26, maxQueryLimit: limits.maxQueryLimit });
 
 type Subscription = {
   connectionId: string;
@@ -99,13 +100,13 @@ const processEvent = async (ws: WSContext, _connectionId: string, payload: Clien
 const processReq = async (ws: WSContext, connectionId: string, payload: ClientToRelayPayload<"REQ">) => {
   const [_, subscriptionId, ...filters] = payload;
 
-  if (filters.length > LIMITS.maxFiltersPerRequest) return wsSendPayload(ws, ["CLOSED", subscriptionId, "rate-limited: too many filters"]);
+  if (filters.length > limits.maxFiltersPerRequest) return wsSendPayload(ws, ["CLOSED", subscriptionId, "rate-limited: too many filters"]);
 
   // A REQ with an already used subscription id replaces the old subscription (NIP-01).
   removeSubscription(connectionId, subscriptionId);
 
   const connectionSubscriptions = subscriptions.filter((subscription) => subscription.connectionId === connectionId);
-  if (connectionSubscriptions.length >= LIMITS.maxSubscriptionsPerConnection)
+  if (connectionSubscriptions.length >= limits.maxSubscriptionsPerConnection)
     return wsSendPayload(ws, ["CLOSED", subscriptionId, "rate-limited: too many subscriptions"]);
 
   const onMessage = (event: Event) => wsSendPayload(ws, ["EVENT", subscriptionId, event]);
@@ -142,13 +143,13 @@ app.get(
       async onMessage(evt, ws) {
         try {
           const data = String(evt.data);
-          if (data.length > LIMITS.maxMessageBytes) return wsSendPayload(ws, ["NOTICE", "invalid: message is too large"]);
+          if (data.length > limits.maxMessageBytes) return wsSendPayload(ws, ["NOTICE", "invalid: message is too large"]);
 
           if (Date.now() - windowStart > 60_000) {
             windowStart = Date.now();
             messageCount = 0;
           }
-          if (++messageCount > LIMITS.maxMessagesPerMinute) return wsSendPayload(ws, ["NOTICE", "rate-limited: slow down"]);
+          if (++messageCount > limits.maxMessagesPerMinute) return wsSendPayload(ws, ["NOTICE", "rate-limited: slow down"]);
 
           let json: unknown;
           try {
@@ -187,7 +188,7 @@ app.get(
   },
 );
 
-const server = serve({ fetch: app.fetch, port });
+const server = serve({ fetch: app.fetch, port: config.port });
 injectWebSocket(server);
 
-console.log(`Server running at http://localhost:${port}`);
+console.log(`Server running at http://localhost:${config.port}`);
