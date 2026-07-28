@@ -19,5 +19,7 @@
     ],
     "strictNullChecks": true
   },
-  "include": ["src", "scripts"]
+  "include": ["src", "scripts"],
+  // The experimental Bun entrypoint references bun:sqlite, which has no types in this Node toolchain.
+  "exclude": ["src/index.bun.ts"]
 }
