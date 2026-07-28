@@ -44,24 +44,22 @@ Every variable is optional; see [`.env.example`](.env.example) for the full list
 
 ## Benchmark
 
-Casual single-run numbers (2026-07-28, 24-core Linux, loopback, single relay process each).
-5,000 pre-signed kind-1 events published over 16 connections, then 800 REQ queries with
-mixed filters over 8 connections; every relay started from an empty database and received
-the identical event set. All three relays returned byte-identical query results.
+Median of three runs (2026-07-28, 24-core Linux, Node 24.15.0, loopback, one relay process
+at a time, WebSocket compression disabled).
+Each run started from an empty database: 5,000 pre-signed kind-1 events were published over
+16 connections, followed by 800 mixed-filter REQ queries over 8 connections, with one
+in-flight operation per connection. All relays received the same events and returned the
+same 35,922 event IDs across the queries.
 
 | Relay                              | Writes (events/s) | Reads (queries/s) |
 | ---------------------------------- | ----------------- | ----------------- |
-| simple-nostr-relay (Node 24)       | 1,960             | **966**           |
-| nostr-rs-relay 0.10.0 (Rust/SQLite)| 3,215             | 273               |
-| strfry 1.1.1 (C++/LMDB)            | **11,254**        | 749               |
+| simple-nostr-relay (Node 24)       | 1,806             | 1,589             |
+| nostr-rs-relay 0.10.0 (Rust/SQLite)| 2,181             | 195               |
+| strfry 1.1.1 (C++/LMDB)            | **3,765**         | **2,796**         |
 
-Reads are the fastest of the three thanks to synchronous in-process SQLite (small-dataset
-caveat applies). Writes are within reach of the Rust relay since schnorr verification moved
-to WASM libsecp256k1 (`tiny-secp256k1`), roughly 3x faster than pure-JS verification.
-
-`src/index.bun.ts` is an experimental Bun entrypoint using `bun:sqlite` (better-sqlite3
-cannot load under Bun). It performs on par with the Node entrypoint at about half the memory;
-Node remains the supported runtime.
+These are end-to-end, acknowledgement-paced WebSocket results, including protocol parsing,
+signature verification, storage, query execution, and response serialization. The database
+fits in memory, so large-dataset performance may differ.
 
 ## License
 

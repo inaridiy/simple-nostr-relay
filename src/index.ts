@@ -1,8 +1,9 @@
 import * as schema from "@/database";
 import { isEventMatchSomeFilters } from "@/nostr/isEventMatchSomeFilters";
+import { toErrorReason } from "@/nostr/toErrorReason";
 import { verifyEvent } from "@/nostr/verifyEvent";
 import { createRepository } from "@/repository";
-import type { ClientToRelayPayload, Event, ReasonMessage, RelayToClientPayload, SubscriptionFilter } from "@/types/core";
+import type { ClientToRelayPayload, Event, RelayToClientPayload, SubscriptionFilter } from "@/types/core";
 import type { RelayInfomaion } from "@/types/nip11";
 import { validateClientToRelayPayload } from "@/validators/validateClientToRelayPayload";
 import { validateDeletionEvent } from "@/validators/validateDeletionEvent";
@@ -61,7 +62,7 @@ const removeSubscription = (connectionId: string, subscriptionId: string) => {
   );
 };
 
-const wsSendPayload = async (ws: WSContext, payload: RelayToClientPayload) => ws.send(JSON.stringify(payload));
+const wsSendPayload = (ws: WSContext, payload: RelayToClientPayload) => ws.send(JSON.stringify(payload));
 
 const broadcastEvent = (event: Event) => {
   for (const { onMessage, filters } of subscriptions) {
@@ -75,25 +76,27 @@ const processEvent = async (ws: WSContext, _connectionId: string, payload: Clien
   if (!isValid) return wsSendPayload(ws, ["OK", event.id, false, "invalid: event id or signature is invalid"]);
 
   try {
-    const existingEvent = await repository.queryEventById(event.id);
-    if (existingEvent) return wsSendPayload(ws, ["OK", event.id, false, "duplicate: event already exists"]);
+    const isReplaceable = isReplaceableEvent(event);
+    const isParameterizedReplaceable = isParameterizedReplaceableEvent(event);
+    if (isReplaceable || isParameterizedReplaceable || event.kind === 5) {
+      const existingEvent = await repository.queryEventById(event.id);
+      if (existingEvent) return wsSendPayload(ws, ["OK", event.id, false, "duplicate: event already exists"]);
+    }
 
-    if (isReplaceableEvent(event)) await repository.saveReplaceableEvent(event);
+    if (isReplaceable) await repository.saveReplaceableEvent(event);
     else if (isTemporaryEvent(event)) await repository.saveTemporaryEvent(event);
-    else if (isParameterizedReplaceableEvent(event)) await repository.saveParameterizedReplaceableEvent(event);
+    else if (isParameterizedReplaceable) await repository.saveParameterizedReplaceableEvent(event);
     else if (event.kind === 5) {
       const result = validateDeletionEvent(event);
       if (!result.success) return wsSendPayload(ws, ["OK", event.id, false, "invalid: deletion event is invalid"]);
       await repository.deleteEventsByDeletionEvent(result.data);
       await repository.saveEvent(event);
-    } else await repository.saveEvent(event);
+    } else if (!(await repository.saveEvent(event))) return wsSendPayload(ws, ["OK", event.id, false, "duplicate: event already exists"]);
 
     wsSendPayload(ws, ["OK", event.id, true, ""]);
     broadcastEvent(event);
   } catch (error) {
-    let message = error instanceof Error ? error.message : "error: unknown error";
-    message = message.includes(":") ? message : `error: ${message}`;
-    wsSendPayload(ws, ["OK", event.id, false, message as ReasonMessage]);
+    wsSendPayload(ws, ["OK", event.id, false, toErrorReason(error)]);
   }
 };
 
@@ -112,18 +115,29 @@ const processReq = async (ws: WSContext, connectionId: string, payload: ClientTo
   const onMessage = (event: Event) => wsSendPayload(ws, ["EVENT", subscriptionId, event]);
   subscriptions.push({ connectionId, subscriptionId, filters, onMessage });
 
-  const events = await repository.queryEventsByFilters(filters);
-  for (const event of events) wsSendPayload(ws, ["EVENT", subscriptionId, event]);
-  wsSendPayload(ws, ["EOSE", subscriptionId]);
+  try {
+    const events = await repository.queryEventsByFilters(filters);
+    for (const event of events) wsSendPayload(ws, ["EVENT", subscriptionId, event]);
+    wsSendPayload(ws, ["EOSE", subscriptionId]);
+  } catch (error) {
+    removeSubscription(connectionId, subscriptionId);
+    wsSendPayload(ws, ["CLOSED", subscriptionId, toErrorReason(error)]);
+  }
 };
 
 const processCount = async (ws: WSContext, _conId: string, payload: ClientToRelayPayload<"COUNT">) => {
   const [_, subscriptionId, ...filters] = payload;
-  const count = await repository.countEventsByFilters(filters);
-  wsSendPayload(ws, ["COUNT", subscriptionId, { count }]);
+  if (filters.length > limits.maxFiltersPerRequest) return wsSendPayload(ws, ["CLOSED", subscriptionId, "rate-limited: too many filters"]);
+
+  try {
+    const count = await repository.countEventsByFilters(filters);
+    wsSendPayload(ws, ["COUNT", subscriptionId, { count }]);
+  } catch (error) {
+    wsSendPayload(ws, ["CLOSED", subscriptionId, toErrorReason(error)]);
+  }
 };
 
-const closeSubscription = async (_ws: WSContext, conId: string, payload: ClientToRelayPayload<"CLOSE">) => {
+const closeSubscription = (_ws: WSContext, conId: string, payload: ClientToRelayPayload<"CLOSE">) => {
   const [_, subscriptionId] = payload;
   removeSubscription(conId, subscriptionId);
 };
@@ -189,7 +203,7 @@ app.get(
 serve({
   fetch: app.fetch,
   port: config.port,
-  websocket: { server: new WebSocketServer({ noServer: true }) },
+  websocket: { server: new WebSocketServer({ noServer: true, maxPayload: limits.maxMessageBytes }) },
 });
 
 console.log(`Server running at http://localhost:${config.port}`);

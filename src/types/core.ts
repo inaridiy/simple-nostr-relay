@@ -1,5 +1,3 @@
-import type { ValueOf } from "./utils";
-
 /**
  * @description lowercase hex-encoded string
  * @pattern ^[0-9a-f]+$
@@ -89,33 +87,6 @@ export type PrimitiveTags = {
 };
 
 /**
- * @description Event Type Constants
- */
-export const EventType = {
-  /**
-   * @description Regular events are expected to be stored by relays.
-   */
-  REGULAR: "REGULAR",
-  /**
-   * @description Replaceable events are expected to be stored by relays, with only the latest event for each (pubkey, kind) combination retained.
-   */
-  REPLACEABLE: "REPLACEABLE",
-  /**
-   * @description Ephemeral events are not expected to be stored by relays.
-   */
-  EPHEMERAL: "EPHEMERAL",
-  /**
-   * @description Parameterized Replaceable events are expected to be stored by relays, with only the latest event for each (pubkey, kind, d-tag value) combination retained.
-   */
-  PARAMETERIZED_REPLACEBLE: "PARAMETERIZED_REPLACEBLE",
-} as const;
-
-/**
- * @description Event Type
- */
-export type EventType = ValueOf<typeof EventType>;
-
-/**
  * @description SerializedEvent is for calculating the sha256 hash(id) of the event data
  * @link https://github.com/nostr-protocol/nips/blob/master/01.md#events-and-signatures
  *
@@ -169,11 +140,11 @@ export type SerializedEvent = [
  */
 export type SubscriptionFilter = Partial<{
   /**
-   * @description a list of lowercase hex-encoded event ids
+   * @description a list of 64-character lowercase hex-encoded event ids
    */
   ids: Hex[];
   /**
-   * @description a list of lowercase pubkeys, the pubkey of an event must be one of these
+   * @description a list of 64-character lowercase hex-encoded pubkeys, the pubkey of an event must be one of these
    */
   authors: Hex[];
   /**
@@ -223,16 +194,8 @@ export type ClientToRelayPayload<T extends keyof ClientToRelayPayloads = keyof C
  * @description Reason Message Prefix Constants
  * @link https://github.com/nostr-protocol/nips/blob/master/01.md#from-relay-to-client-sending-events-and-notices
  */
-export const ReasonMessagePrefix = {
-  DUPLICATE: "duplicate",
-  POW: "pow",
-  BLOCKED: "blocked",
-  RATE_LIMITED: "rate-limited",
-  INVALID: "invalid",
-  ERROR: "error",
-} as const;
-
-export type ReasonMessagePrefix = ValueOf<typeof ReasonMessagePrefix>;
+export const REASON_MESSAGE_PREFIXES = ["duplicate", "pow", "blocked", "rate-limited", "invalid", "restricted", "mute", "error"] as const;
+export type ReasonMessagePrefix = (typeof REASON_MESSAGE_PREFIXES)[number];
 export type ReasonMessage = `${ReasonMessagePrefix}: ${string}` | "";
 export type HumanReadableReasonMessage = string;
 

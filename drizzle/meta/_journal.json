@@ -29,6 +29,13 @@
       "when": 1725557277603,
       "tag": "0003_lethal_vulcan",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1785247279385,
+      "tag": "0004_simplify_indexes",
+      "breakpoints": true
     }
   ]
 }

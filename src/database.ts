@@ -19,12 +19,9 @@ export const events = sqliteTable(
     raw: blob("raw", { mode: "json" }).notNull(),
   },
   (table) => ({
-    kindIdx: index("kind_idx").on(table.kind),
-    authorIdx: index("author_idx").on(table.author),
     detegatorIdx: index("detegator_idx").on(table.detegator),
     createdAtIdx: index("created_at_idx").on(table.created_at),
     eventCompositeIdx: index("kind_composite_idx").on(table.kind, table.created_at),
-    kindAuthorIdx: index("kind_author_idx").on(table.kind, table.author),
     authorCreatedAtIdx: index("author_created_at_idx").on(table.author, table.created_at),
     authorKindIdx: index("author_kind_idx").on(table.author, table.kind),
   }),
@@ -40,10 +37,8 @@ export const tags = sqliteTable(
     rest: text("rest", { mode: "json" }).$type<string[]>(),
   },
   (table) => ({
-    eventIdIdx: index("event_id_idx").on(table.eventId),
-    tagValueIdx: index("tag_value_idx").on(table.value),
     tagCompositeIdx: index("tag_composite_idx").on(table.eventId, table.name, table.value),
-    tagNameEventIdIdx: index("tag_name_event_id_idx").on(table.name, table.eventId, table.value),
+    tagNameValueEventIdIdx: index("tag_name_value_event_id_idx").on(table.name, table.value, table.eventId),
   }),
 );
 

@@ -41,7 +41,7 @@ describe("Event Repository", () => {
       const savedEvent = await repository.queryEventById(event.id);
       expect(savedEvent).toMatchObject(event);
     });
-    it("should throw an error when saving duplicated event", async () => {
+    it("should report a duplicated event without inserting it again", async () => {
       const sk = generateSecretKey();
       const event = finalizeEvent(
         {
@@ -52,9 +52,9 @@ describe("Event Repository", () => {
         },
         sk,
       );
-      await repository.saveEvent(event as unknown as Event);
+      expect(await repository.saveEvent(event as unknown as Event)).toBe(true);
 
-      expect(repository.saveEvent(event as unknown as Event)).rejects.toThrow();
+      expect(await repository.saveEvent(event as unknown as Event)).toBe(false);
     });
     it("should save an event with tags", async () => {
       const sk = generateSecretKey();
@@ -231,6 +231,22 @@ describe("Event Repository", () => {
       const rawOldEvent = await db.query.events.findFirst({ where: eq(schema.events.id, event.id) });
       expect(rawOldEvent?.replaced).toBe(true);
     });
+    it("should reject a parameterized replaceable event without a d-tag value", async () => {
+      const sk = generateSecretKey();
+      const event = finalizeEvent(
+        {
+          kind: 30000,
+          created_at: Math.floor(Date.now() / 1000),
+          tags: [["d"]],
+          content: "missing d value",
+        },
+        sk,
+      );
+
+      await expect(repository.saveParameterizedReplaceableEvent(event as unknown as Event)).rejects.toThrow(
+        "Parameterized replaceable event should have one d tag with a value",
+      );
+    });
     it("should save a parameterized replaceable event different d", async () => {
       const sk = generateSecretKey();
 
@@ -394,7 +410,7 @@ describe("Event Repository", () => {
         {
           kind: 5,
           created_at: Math.floor(Date.now() / 1000),
-          tags: [["a", `${event1.kind}:${getPublicKey(sk)}`]],
+          tags: [["a", `${event1.kind}:${getPublicKey(sk)}:`]],
           content: "delete for test",
         },
         sk,
@@ -402,6 +418,35 @@ describe("Event Repository", () => {
       await repository.deleteEventsByDeletionEvent(deletionEvent as unknown as DeletionEvent);
       const deletedEvent = await repository.queryEventById(event1.id);
       expect(deletedEvent).toBe(null);
+    });
+    it("should not delete an address that the a tag does not reference", async () => {
+      const sk = generateSecretKey();
+      const otherSk = generateSecretKey();
+      const event = finalizeEvent(
+        {
+          kind: 30000,
+          created_at: Math.floor(Date.now() / 1000),
+          tags: [["d", "profile"]],
+          content: "keep me",
+        },
+        sk,
+      );
+      await repository.saveEvent(event as unknown as Event);
+
+      const deletionEvent = finalizeEvent(
+        {
+          kind: 5,
+          created_at: Math.floor(Date.now() / 1000),
+          tags: [["a", `${event.kind}:${getPublicKey(otherSk)}:profile`]],
+          content: "references another author",
+        },
+        sk,
+      );
+      await expect(repository.deleteEventsByDeletionEvent(deletionEvent as unknown as DeletionEvent)).rejects.toThrow(
+        "deletion event has no valid e or a tags",
+      );
+
+      expect(await repository.queryEventById(event.id)).toMatchObject(event);
     });
     it("should delete an event by a tag with d identifier", async () => {
       const sk = generateSecretKey();
@@ -712,6 +757,10 @@ describe("Event Repository", () => {
       expect(events).toHaveLength(3);
       expect(events).toMatchObject([event2, event1, sk1profile]);
     });
+    it("should require exact event ids", async () => {
+      const events = await repository.queryEventsByFilters([{ ids: [event1.id.slice(0, 8)] }]);
+      expect(events).toHaveLength(0);
+    });
     it("should query events by kind", async () => {
       const events = await repository.queryEventsByFilters([{ kinds: [0] }]);
       expect(events).toHaveLength(3);
@@ -727,10 +776,24 @@ describe("Event Repository", () => {
       expect(events).toHaveLength(2);
       expect(events).toMatchObject([sk2profile, sk1profile]);
     });
+    it("should apply an until value of zero", async () => {
+      const sk = generateSecretKey();
+      const atEpoch = finalizeEvent({ kind: 4445, created_at: 0, tags: [], content: "epoch" }, sk);
+      const afterEpoch = finalizeEvent({ kind: 4445, created_at: 1, tags: [], content: "after epoch" }, sk);
+      await repository.saveEvent(atEpoch as unknown as Event);
+      await repository.saveEvent(afterEpoch as unknown as Event);
+
+      const events = await repository.queryEventsByFilters([{ kinds: [4445], until: 0 }]);
+      expect(events).toMatchObject([atEpoch]);
+    });
     it("should query events by tag filter", async () => {
       const events = await repository.queryEventsByFilters([{ "#p": [getPublicKey(sk2)] }]);
       expect(events).toHaveLength(1);
       expect(events).toMatchObject([event1]);
+    });
+    it("should not ignore unsupported filters", async () => {
+      expect(await repository.queryEventsByFilters([{ search: "hello" }])).toHaveLength(0);
+      expect(await repository.queryEventsByFilters([{ "#topic": ["nostr"] }])).toHaveLength(0);
     });
     it("should query events by multiple cond filter", async () => {
       const events = await repository.queryEventsByFilters([{ kinds: [1], authors: [getPublicKey(sk1)], "#p": [getPublicKey(sk2)] }]);
@@ -800,6 +863,18 @@ describe("Event Repository", () => {
     it("should respect the requested limit", async () => {
       const events = await repository.queryEventsByFilters([{ kinds: [0], limit: 1 }]);
       expect(events).toHaveLength(1);
+      expect(await repository.queryEventsByFilters([{ kinds: [0], limit: -1 }])).toHaveLength(0);
+    });
+    it("should order equal timestamps by the lowest id first", async () => {
+      const sk = generateSecretKey();
+      const createdAt = Math.floor(Date.now() / 1000);
+      const first = finalizeEvent({ kind: 4444, created_at: createdAt, tags: [], content: "first candidate" }, sk);
+      const second = finalizeEvent({ kind: 4444, created_at: createdAt, tags: [], content: "second candidate" }, sk);
+      await repository.saveEvent(first as unknown as Event);
+      await repository.saveEvent(second as unknown as Event);
+
+      const events = await repository.queryEventsByFilters([{ kinds: [4444] }]);
+      expect(events.map(({ id }) => id)).toEqual([first.id, second.id].sort());
     });
   });
 });

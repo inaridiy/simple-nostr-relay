@@ -19,9 +19,9 @@ describe("isEventMatchFilter", () => {
   it("should match an empty filter", () => {
     expect(isEventMatchFilter({}, baseEvent)).toBe(true);
   });
-  it("should match by ids, with prefix support", () => {
+  it("should match only exact ids", () => {
     expect(isEventMatchFilter({ ids: [baseEvent.id] }, baseEvent)).toBe(true);
-    expect(isEventMatchFilter({ ids: [baseEvent.id.slice(0, 8)] }, baseEvent)).toBe(true);
+    expect(isEventMatchFilter({ ids: [baseEvent.id.slice(0, 8)] }, baseEvent)).toBe(false);
     expect(isEventMatchFilter({ ids: ["ff".repeat(32)] }, baseEvent)).toBe(false);
     expect(isEventMatchFilter({ ids: [] }, baseEvent)).toBe(false);
   });
@@ -38,11 +38,16 @@ describe("isEventMatchFilter", () => {
     expect(isEventMatchFilter({ since: 999, until: 1001 }, baseEvent)).toBe(true);
     expect(isEventMatchFilter({ since: 1001 }, baseEvent)).toBe(false);
     expect(isEventMatchFilter({ until: 999 }, baseEvent)).toBe(false);
+    expect(isEventMatchFilter({ until: 0 }, baseEvent)).toBe(false);
   });
   it("should match by a tag condition", () => {
     expect(isEventMatchFilter({ "#e": ["0000000000000000000000000000000000000000000000000000000000000001"] }, baseEvent)).toBe(true);
     expect(isEventMatchFilter({ "#e": ["ff".repeat(32)] }, baseEvent)).toBe(false);
     expect(isEventMatchFilter({ "#t": ["nostr"] }, baseEvent)).toBe(false);
+  });
+  it("should not ignore unsupported filters", () => {
+    expect(isEventMatchFilter({ search: "hello" }, baseEvent)).toBe(false);
+    expect(isEventMatchFilter({ "#topic": ["nostr"] }, baseEvent)).toBe(false);
   });
   it("should require all tag conditions to match", () => {
     const bothMatch = {

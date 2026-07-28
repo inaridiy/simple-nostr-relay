@@ -1,6 +1,5 @@
-import { type SQL, type SQLWrapper, and, count, desc, eq, gte, inArray, like, lte, ne, or, sql } from "drizzle-orm";
+import { type SQL, type SQLWrapper, and, asc, count, desc, eq, gte, inArray, lte, ne, or, sql } from "drizzle-orm";
 import type { BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
-import type { SQLiteColumn } from "drizzle-orm/sqlite-core";
 import { uuidv7 } from "uuidv7";
 import * as schema from "./database";
 import { getTagValuesByName } from "./nostr/utils";
@@ -37,12 +36,9 @@ const toInsertableEvent = (event: Event) => {
   return { insertableEvent, insertableTags };
 };
 
-const hexQueryHelper = (column: SQLiteColumn, values: string[]) =>
-  or(...values.map((value) => (value.length === 64 ? eq(column, value) : like(column, `${value}%`))));
-
 const hasDIdentifierQueryHelper = (dIdentifier: string) => {
   return sql`${schema.events.id} IN (
-    SELECT DISTINCT ${schema.tags.eventId}
+    SELECT ${schema.tags.eventId}
     FROM ${schema.tags}
     WHERE ${schema.tags.name} = 'd' AND ${schema.tags.value} = ${dIdentifier}
   )`;
@@ -50,7 +46,7 @@ const hasDIdentifierQueryHelper = (dIdentifier: string) => {
 
 const hasTagQueryHelper = (tagName: string, values: string[]) => {
   return sql`${schema.events.id} IN (
-    SELECT DISTINCT ${schema.tags.eventId}
+    SELECT ${schema.tags.eventId}
     FROM ${schema.tags}
     WHERE ${schema.tags.name} = ${tagName} AND ${schema.tags.value} IN (${sql.join(
       values.map((value) => sql`${value}`),
@@ -65,21 +61,23 @@ const buildQuery = (filter: SubscriptionFilter, opt: RepositoryOptions): SQL | u
   queries.push(eq(schema.events.replaced, false));
 
   if (filter.ids)
-    if (filter.ids.length > 0) queries.push(hexQueryHelper(schema.events.id, filter.ids));
+    if (filter.ids.length > 0) queries.push(inArray(schema.events.id, filter.ids));
     else queries.push(sql`1 = 0`);
   if (filter.authors)
     if (filter.authors.length === 0) queries.push(sql`1 = 0`);
     else if (opt.enableNIP26)
-      queries.push(or(hexQueryHelper(schema.events.detegator, filter.authors), hexQueryHelper(schema.events.author, filter.authors)));
-    else queries.push(hexQueryHelper(schema.events.author, filter.authors));
+      queries.push(or(inArray(schema.events.detegator, filter.authors), inArray(schema.events.author, filter.authors)));
+    else queries.push(inArray(schema.events.author, filter.authors));
   if (filter.kinds) queries.push(inArray(schema.events.kind, filter.kinds));
-  if (filter.since) queries.push(gte(schema.events.created_at, new Date(filter.since * 1000)));
-  if (filter.until) queries.push(lte(schema.events.created_at, new Date(filter.until * 1000)));
+  if (filter.since !== undefined) queries.push(gte(schema.events.created_at, new Date(filter.since * 1000)));
+  if (filter.until !== undefined) queries.push(lte(schema.events.created_at, new Date(filter.until * 1000)));
+  if (filter.search !== undefined) queries.push(sql`1 = 0`);
 
   // Each tag condition must hold (AND across conditions, OR within one condition's values).
-  const tagFilters = Object.entries(filter).filter(([key]) => key.startsWith("#") && key.length === 2);
+  const tagFilters = Object.entries(filter).filter(([key]) => key.startsWith("#"));
   for (const [tag, values] of tagFilters) {
-    if ((values as string[]).length > 0) queries.push(hasTagQueryHelper(tag.slice(1), values as string[]));
+    if (!/^#[a-zA-Z]$/.test(tag)) queries.push(sql`1 = 0`);
+    else if ((values as string[]).length > 0) queries.push(hasTagQueryHelper(tag.slice(1), values as string[]));
     else queries.push(sql`1 = 0`);
   }
 
@@ -99,12 +97,14 @@ export type RepositoryOptions = {
 };
 
 export const createRepository = (db: BetterSQLite3Database<typeof schema>, options: RepositoryOptions = {}) => ({
-  saveEvent: async (event: Event): Promise<void> => {
+  saveEvent: async (event: Event): Promise<boolean> => {
     const { insertableEvent, insertableTags } = toInsertableEvent(event);
 
-    db.transaction((tx) => {
-      tx.insert(schema.events).values(insertableEvent).run();
+    return db.transaction((tx) => {
+      const result = tx.insert(schema.events).values(insertableEvent).onConflictDoNothing().run();
+      if (result.changes === 0) return false;
       insertableTags.length > 0 && tx.insert(schema.tags).values(insertableTags).run();
+      return true;
     });
   },
   saveReplaceableEvent: async (event: Event): Promise<void> => {
@@ -131,7 +131,7 @@ export const createRepository = (db: BetterSQLite3Database<typeof schema>, optio
     const { insertableEvent, insertableTags } = toInsertableEvent(event);
 
     const d = getTagValuesByName(event, "d");
-    if (d.length !== 1) throw new Error("invalid: Parameterized replaceable event should have one d tag");
+    if (d.length !== 1) throw new Error("invalid: Parameterized replaceable event should have one d tag with a value");
     const [dIdentifier] = d;
     const sameAddressQuery = and(
       eq(schema.events.author, event.pubkey),
@@ -167,17 +167,26 @@ export const createRepository = (db: BetterSQLite3Database<typeof schema>, optio
       queries.push(and(inArray(schema.events.id, e), authorQuery));
     }
     for (const aValue of a) {
-      const [kind, , dIdentifier] = aValue.split(":");
+      const firstSeparator = aValue.indexOf(":");
+      const secondSeparator = aValue.indexOf(":", firstSeparator + 1);
+      if (firstSeparator <= 0 || secondSeparator < 0) continue;
+
+      const kind = Number(aValue.slice(0, firstSeparator));
+      const referencedPubkey = aValue.slice(firstSeparator + 1, secondSeparator);
+      const dIdentifier = aValue.slice(secondSeparator + 1);
+      if (!Number.isInteger(kind) || kind < 0 || kind > 65535 || referencedPubkey !== event.pubkey) continue;
+
       queries.push(
         and(
-          eq(schema.events.kind, Number(kind)),
+          eq(schema.events.kind, kind),
           authorQuery,
           // Only versions published up to the deletion request are deleted.
           lte(schema.events.created_at, new Date(event.created_at * 1000)),
-          dIdentifier ? hasDIdentifierQueryHelper(dIdentifier) : undefined,
+          dIdentifier.length > 0 ? hasDIdentifierQueryHelper(dIdentifier) : undefined,
         ),
       );
     }
+    if (queries.length === 0) throw new Error("invalid: deletion event has no valid e or a tags");
 
     await db
       .update(schema.events)
@@ -203,13 +212,14 @@ export const createRepository = (db: BetterSQLite3Database<typeof schema>, optio
   },
   queryEventsByFilters: async (filters: SubscriptionFilter[]): Promise<Event[]> => {
     if (filters.length === 0) return [];
-    const limit = Math.min(options.maxQueryLimit ?? DEFAULT_MAX_QUERY_LIMIT, Math.max(...filters.map((filter) => filter.limit ?? 100)));
+    const requestedLimit = Math.max(...filters.map((filter) => filter.limit ?? 100));
+    const limit = Math.min(options.maxQueryLimit ?? DEFAULT_MAX_QUERY_LIMIT, Math.max(0, Math.floor(requestedLimit)));
 
     const results = await db
       .select({ raw: schema.events.raw })
       .from(schema.events)
       .where(or(...filters.map((filter) => buildQuery(filter, options))))
-      .orderBy(desc(schema.events.created_at))
+      .orderBy(desc(schema.events.created_at), asc(schema.events.id))
       .limit(limit);
 
     return results.map((result) => result.raw as Event);

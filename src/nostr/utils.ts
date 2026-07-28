@@ -13,7 +13,7 @@ export const verifySchnorrSignature = (sigHex: string, messageHash: Uint8Array, 
   }
 };
 
-export const serializeEvent = (event: Event): SerializedEvent => {
+const serializeEvent = (event: Event): SerializedEvent => {
   return [0, event.pubkey, event.created_at, event.kind, event.tags, event.content];
 };
 
@@ -32,11 +32,11 @@ export const getTagsByName = <T extends string>(event: Event, tag: T): [T, ...st
 };
 
 export const getTagValuesByName = <T extends string>(event: Event, tag: T): string[] => {
-  return getTagsByName(event, tag).map((t) => t[1]);
+  return getTagsByName(event, tag).flatMap((t) => (t[1] === undefined ? [] : [t[1]]));
 };
 
 export const isReplaceableEvent = (event: Event): boolean => {
-  return event.kind === 0 || event.kind === 3 || event.kind === 41 || (10000 <= event.kind && event.kind < 20000);
+  return event.kind === 0 || event.kind === 3 || (10000 <= event.kind && event.kind < 20000);
 };
 
 export const isTemporaryEvent = (event: Event): boolean => {
