@@ -1,8 +1,7 @@
-import { schnorr } from "@noble/curves/secp256k1";
-import { bytesToHex, hexToBytes } from "@noble/hashes/utils";
+import { bytesToHex } from "@noble/hashes/utils";
 import type { Event } from "../types/core";
 import { verifyDelegation } from "./nips26";
-import { hasTag, hashEvent } from "./utils";
+import { hasTag, hashEvent, verifySchnorrSignature } from "./utils";
 
 export type VerifyEventOptions = {
   enableNIP26?: boolean;
@@ -16,7 +15,7 @@ export type VerifyEventOptions = {
 export const verifyDirectEvent = (event: Event): boolean => {
   const hash = hashEvent(event);
   if (bytesToHex(hash) !== event.id) return false;
-  return schnorr.verify(hexToBytes(event.sig), hash, hexToBytes(event.pubkey));
+  return verifySchnorrSignature(event.sig, hash, event.pubkey);
 };
 
 /**

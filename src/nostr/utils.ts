@@ -1,5 +1,17 @@
 import { sha256 } from "@noble/hashes/sha256";
+import { hexToBytes } from "@noble/hashes/utils";
+import { verifySchnorr } from "tiny-secp256k1";
 import type { Event, SerializedEvent } from "../types/core";
+
+// tiny-secp256k1 (WASM libsecp256k1) throws on malformed keys/signatures where
+// pure-JS @noble returned false; treat a throw as an invalid signature.
+export const verifySchnorrSignature = (sigHex: string, messageHash: Uint8Array, pubkeyHex: string): boolean => {
+  try {
+    return verifySchnorr(messageHash, hexToBytes(pubkeyHex), hexToBytes(sigHex));
+  } catch {
+    return false;
+  }
+};
 
 export const serializeEvent = (event: Event): SerializedEvent => {
   return [0, event.pubkey, event.created_at, event.kind, event.tags, event.content];

@@ -1,10 +1,8 @@
 import type { DelegationTokenMessage } from "@/types/nip26";
 import { validateDelegationTag } from "@/validators/validateDelegationTag";
-import { schnorr } from "@noble/curves/secp256k1";
 import { sha256 } from "@noble/hashes/sha256";
-import { hexToBytes } from "@noble/hashes/utils";
 import type { Event } from "../types/core";
-import { getTagsByName } from "./utils";
+import { getTagsByName, verifySchnorrSignature } from "./utils";
 
 export const checkDelegationQuery = (event: Event, query: string): boolean => {
   for (const cond of query.split("&")) {
@@ -41,7 +39,7 @@ export const verifyDelegation = (event: Event): boolean => {
   if (!checkDelegationQuery(event, query)) return false;
 
   const tokenMessage: DelegationTokenMessage = `nostr:delegation:${event.pubkey}:${query}`;
-  if (!schnorr.verify(hexToBytes(token), sha256(tokenMessage), hexToBytes(delegatorPubkey))) return false;
+  if (!verifySchnorrSignature(token, sha256(tokenMessage), delegatorPubkey)) return false;
 
   return true;
 };
