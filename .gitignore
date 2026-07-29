@@ -1,4 +1,5 @@
 node_modules
 database.sqlite
 coverage
+dist
 .env

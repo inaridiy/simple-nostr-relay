@@ -1,6 +1,7 @@
+import * as __typia_transform__validateReport from "typia/lib/internal/_validateReport.js";
 import type { DeletionEvent } from "@/types/nip9";
 import typia from "typia";
-export const validateDeletionEvent = (() => { const $ip0 = (input: any) => {
+export const validateDeletionEvent = (() => { const _ip0 = (input: any) => {
     const array = input;
     const tuplePredicators = [
         [
@@ -32,7 +33,7 @@ export const validateDeletionEvent = (() => { const $ip0 = (input: any) => {
         if (pred[0](array))
             return pred[1](array);
     return false;
-}; const $vp1 = (input: any, _path: string, _exceptionable: boolean = true) => {
+}; const _vp1 = (input: any, _path: string, _exceptionable: boolean = true) => {
     const array = input;
     const tuplePredicators = [
         [
@@ -41,22 +42,22 @@ export const validateDeletionEvent = (() => { const $ip0 = (input: any) => {
                 "string" === typeof top[1] && RegExp(/^[+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?:(.*):(.*)/).test(top[1]),
                 "string" === typeof top[2]
             ].every((flag: boolean) => flag),
-            (entire: any[]): any => (entire.length === 3 || $report(_exceptionable, {
+            (entire: any[]): any => (entire.length === 3 || _report(_exceptionable, {
                 path: _path,
                 expected: "[\"a\", `${number}:${string}:${string}`, string]",
                 value: entire
             })) && [
-                "a" === entire[0] || $report(_exceptionable, {
+                "a" === entire[0] || _report(_exceptionable, {
                     path: _path + "[0]",
                     expected: "\"a\"",
                     value: entire[0]
                 }),
-                "string" === typeof entire[1] && RegExp(/^[+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?:(.*):(.*)/).test(entire[1]) || $report(_exceptionable, {
+                "string" === typeof entire[1] && RegExp(/^[+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?:(.*):(.*)/).test(entire[1]) || _report(_exceptionable, {
                     path: _path + "[1]",
                     expected: "`${number}:${string}:${string}`",
                     value: entire[1]
                 }),
-                "string" === typeof entire[2] || $report(_exceptionable, {
+                "string" === typeof entire[2] || _report(_exceptionable, {
                     path: _path + "[2]",
                     expected: "string",
                     value: entire[2]
@@ -69,22 +70,22 @@ export const validateDeletionEvent = (() => { const $ip0 = (input: any) => {
                 "string" === typeof top[1],
                 "string" === typeof top[2]
             ].every((flag: boolean) => flag),
-            (entire: any[]): any => (entire.length === 3 || $report(_exceptionable, {
+            (entire: any[]): any => (entire.length === 3 || _report(_exceptionable, {
                 path: _path,
                 expected: "[\"e\", string, string]",
                 value: entire
             })) && [
-                "e" === entire[0] || $report(_exceptionable, {
+                "e" === entire[0] || _report(_exceptionable, {
                     path: _path + "[0]",
                     expected: "\"e\"",
                     value: entire[0]
                 }),
-                "string" === typeof entire[1] || $report(_exceptionable, {
+                "string" === typeof entire[1] || _report(_exceptionable, {
                     path: _path + "[1]",
                     expected: "string",
                     value: entire[1]
                 }),
-                "string" === typeof entire[2] || $report(_exceptionable, {
+                "string" === typeof entire[2] || _report(_exceptionable, {
                     path: _path + "[2]",
                     expected: "string",
                     value: entire[2]
@@ -96,17 +97,17 @@ export const validateDeletionEvent = (() => { const $ip0 = (input: any) => {
                 "k" === top[0],
                 "string" === typeof top[1] && RegExp(/^[+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?$/).test(top[1])
             ].every((flag: boolean) => flag),
-            (entire: any[]): any => (entire.length === 2 || $report(_exceptionable, {
+            (entire: any[]): any => (entire.length === 2 || _report(_exceptionable, {
                 path: _path,
                 expected: "[\"k\", `${number}`]",
                 value: entire
             })) && [
-                "k" === entire[0] || $report(_exceptionable, {
+                "k" === entire[0] || _report(_exceptionable, {
                     path: _path + "[0]",
                     expected: "\"k\"",
                     value: entire[0]
                 }),
-                "string" === typeof entire[1] && RegExp(/^[+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?$/).test(entire[1]) || $report(_exceptionable, {
+                "string" === typeof entire[1] && RegExp(/^[+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?$/).test(entire[1]) || _report(_exceptionable, {
                     path: _path + "[1]",
                     expected: "`${number}`",
                     value: entire[1]
@@ -118,17 +119,17 @@ export const validateDeletionEvent = (() => { const $ip0 = (input: any) => {
                 "a" === top[0],
                 "string" === typeof top[1] && RegExp(/^[+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?:(.*):(.*)/).test(top[1])
             ].every((flag: boolean) => flag),
-            (entire: any[]): any => (entire.length === 2 || $report(_exceptionable, {
+            (entire: any[]): any => (entire.length === 2 || _report(_exceptionable, {
                 path: _path,
                 expected: "[\"a\", `${number}:${string}:${string}`]",
                 value: entire
             })) && [
-                "a" === entire[0] || $report(_exceptionable, {
+                "a" === entire[0] || _report(_exceptionable, {
                     path: _path + "[0]",
                     expected: "\"a\"",
                     value: entire[0]
                 }),
-                "string" === typeof entire[1] && RegExp(/^[+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?:(.*):(.*)/).test(entire[1]) || $report(_exceptionable, {
+                "string" === typeof entire[1] && RegExp(/^[+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?:(.*):(.*)/).test(entire[1]) || _report(_exceptionable, {
                     path: _path + "[1]",
                     expected: "`${number}:${string}:${string}`",
                     value: entire[1]
@@ -140,17 +141,17 @@ export const validateDeletionEvent = (() => { const $ip0 = (input: any) => {
                 "e" === top[0],
                 "string" === typeof top[1]
             ].every((flag: boolean) => flag),
-            (entire: any[]): any => (entire.length === 2 || $report(_exceptionable, {
+            (entire: any[]): any => (entire.length === 2 || _report(_exceptionable, {
                 path: _path,
                 expected: "[\"e\", string]",
                 value: entire
             })) && [
-                "e" === entire[0] || $report(_exceptionable, {
+                "e" === entire[0] || _report(_exceptionable, {
                     path: _path + "[0]",
                     expected: "\"e\"",
                     value: entire[0]
                 }),
-                "string" === typeof entire[1] || $report(_exceptionable, {
+                "string" === typeof entire[1] || _report(_exceptionable, {
                     path: _path + "[1]",
                     expected: "string",
                     value: entire[1]
@@ -162,20 +163,20 @@ export const validateDeletionEvent = (() => { const $ip0 = (input: any) => {
                 "string" === typeof top[0]
             ].every((flag: boolean) => flag) && (Array.isArray(top.slice(1)) && top.slice(1).map((elem: any, _index9: number) => "string" === typeof elem).every((flag: boolean) => flag)),
             (entire: any[]): any => [
-                "string" === typeof entire[0] || $report(_exceptionable, {
+                "string" === typeof entire[0] || _report(_exceptionable, {
                     path: _path + "[0]",
                     expected: "string",
                     value: entire[0]
                 })
-            ].every((flag: boolean) => flag) && ((Array.isArray(entire.slice(1)) || $report(_exceptionable, {
+            ].every((flag: boolean) => flag) && ((Array.isArray(entire.slice(1)) || _report(_exceptionable, {
                 path: _path,
                 expected: "...string",
                 value: entire.slice(1)
-            })) && entire.slice(1).map((elem: any, _index10: number) => "string" === typeof elem || $report(_exceptionable, {
+            })) && entire.slice(1).map((elem: any, _index10: number) => "string" === typeof elem || _report(_exceptionable, {
                 path: _path + "[" + (1 + _index10) + "]",
                 expected: "string",
                 value: elem
-            })).every((flag: boolean) => flag) || $report(_exceptionable, {
+            })).every((flag: boolean) => flag) || _report(_exceptionable, {
                 path: _path,
                 expected: "...string",
                 value: entire.slice(1)
@@ -185,90 +186,92 @@ export const validateDeletionEvent = (() => { const $ip0 = (input: any) => {
     for (const pred of tuplePredicators)
         if (pred[0](array))
             return pred[1](array);
-    return $report(_exceptionable, {
+    return _report(_exceptionable, {
         path: _path,
         expected: "([\"a\", `${number}:${string}:${string}`, recommendedRelayUrl: string] | [\"e\", eventId: string, recommendedRelayUrl: string] | [\"k\", value: `${number}`] | [\"a\", `${number}:${string}:${string}`] | [\"e\", eventId: string] | [string, ...string[]])",
         value: input
     });
-}; const $io0 = (input: any): boolean => 5 === input.kind && (Array.isArray(input.tags) && input.tags.every((elem: any) => Array.isArray(elem) && ($ip0(elem) || false))) && "string" === typeof input.content && ("string" === typeof input.id && RegExp("^[0-9a-f]{64}$").test(input.id)) && ("string" === typeof input.pubkey && RegExp("^[0-9a-f]{64}$").test(input.pubkey)) && "number" === typeof input.created_at && ("string" === typeof input.sig && RegExp("^[0-9a-f]{128}$").test(input.sig)); const $vo0 = (input: any, _path: string, _exceptionable: boolean = true): boolean => [5 === input.kind || $report(_exceptionable, {
+}; const _io0 = (input: any): boolean => 5 === input.kind && (Array.isArray(input.tags) && input.tags.every((elem: any) => Array.isArray(elem) && (_ip0(elem) || false))) && "string" === typeof input.content && ("string" === typeof input.id && RegExp("^[0-9a-f]{64}$").test(input.id)) && ("string" === typeof input.pubkey && RegExp("^[0-9a-f]{64}$").test(input.pubkey)) && "number" === typeof input.created_at && ("string" === typeof input.sig && RegExp("^[0-9a-f]{128}$").test(input.sig)); const _vo0 = (input: any, _path: string, _exceptionable: boolean = true): boolean => [5 === input.kind || _report(_exceptionable, {
         path: _path + ".kind",
         expected: "5",
         value: input.kind
-    }), (Array.isArray(input.tags) || $report(_exceptionable, {
+    }), (Array.isArray(input.tags) || _report(_exceptionable, {
         path: _path + ".tags",
         expected: "Array<[string, ...string[]] | WithRecommendedRelayUrl<[\"e\", eventId: string]> | WithRecommendedRelayUrl<[\"a\", `${number}:${string}:${string}`]> | [...]>",
         value: input.tags
-    })) && input.tags.map((elem: any, _index6: number) => (Array.isArray(elem) || $report(_exceptionable, {
+    })) && input.tags.map((elem: any, _index6: number) => (Array.isArray(elem) || _report(_exceptionable, {
         path: _path + ".tags[" + _index6 + "]",
         expected: "([\"a\", `${number}:${string}:${string}`, recommendedRelayUrl: string] | [\"a\", `${number}:${string}:${string}`] | [\"e\", eventId: string, recommendedRelayUrl: string] | [\"e\", eventId: string] | [\"k\", value: `${number}`] | [string, ...string[]])",
         value: elem
-    })) && ($vp1(elem, _path + ".tags[" + _index6 + "]", true && _exceptionable) || $report(_exceptionable, {
+    })) && (_vp1(elem, _path + ".tags[" + _index6 + "]", true && _exceptionable) || _report(_exceptionable, {
         path: _path + ".tags[" + _index6 + "]",
         expected: "[\"a\", `${number}:${string}:${string}`, recommendedRelayUrl: string] | [\"e\", eventId: string, recommendedRelayUrl: string] | [\"k\", value: `${number}`] | [\"a\", `${number}:${string}:${string}`] | [\"e\", eventId: string] | [string, ...string[]]",
         value: elem
-    })) || $report(_exceptionable, {
+    })) || _report(_exceptionable, {
         path: _path + ".tags[" + _index6 + "]",
         expected: "([\"a\", `${number}:${string}:${string}`, recommendedRelayUrl: string] | [\"a\", `${number}:${string}:${string}`] | [\"e\", eventId: string, recommendedRelayUrl: string] | [\"e\", eventId: string] | [\"k\", value: `${number}`] | [string, ...string[]])",
         value: elem
-    })).every((flag: boolean) => flag) || $report(_exceptionable, {
+    })).every((flag: boolean) => flag) || _report(_exceptionable, {
         path: _path + ".tags",
         expected: "Array<[string, ...string[]] | WithRecommendedRelayUrl<[\"e\", eventId: string]> | WithRecommendedRelayUrl<[\"a\", `${number}:${string}:${string}`]> | [...]>",
         value: input.tags
-    }), "string" === typeof input.content || $report(_exceptionable, {
+    }), "string" === typeof input.content || _report(_exceptionable, {
         path: _path + ".content",
         expected: "string",
         value: input.content
-    }), "string" === typeof input.id && (RegExp("^[0-9a-f]{64}$").test(input.id) || $report(_exceptionable, {
+    }), "string" === typeof input.id && (RegExp("^[0-9a-f]{64}$").test(input.id) || _report(_exceptionable, {
         path: _path + ".id",
         expected: "string & Pattern<\"^[0-9a-f]{64}$\">",
         value: input.id
-    })) || $report(_exceptionable, {
+    })) || _report(_exceptionable, {
         path: _path + ".id",
         expected: "(string & Pattern<\"^[0-9a-f]{64}$\">)",
         value: input.id
-    }), "string" === typeof input.pubkey && (RegExp("^[0-9a-f]{64}$").test(input.pubkey) || $report(_exceptionable, {
+    }), "string" === typeof input.pubkey && (RegExp("^[0-9a-f]{64}$").test(input.pubkey) || _report(_exceptionable, {
         path: _path + ".pubkey",
         expected: "string & Pattern<\"^[0-9a-f]{64}$\">",
         value: input.pubkey
-    })) || $report(_exceptionable, {
+    })) || _report(_exceptionable, {
         path: _path + ".pubkey",
         expected: "(string & Pattern<\"^[0-9a-f]{64}$\">)",
         value: input.pubkey
-    }), "number" === typeof input.created_at || $report(_exceptionable, {
+    }), "number" === typeof input.created_at || _report(_exceptionable, {
         path: _path + ".created_at",
         expected: "number",
         value: input.created_at
-    }), "string" === typeof input.sig && (RegExp("^[0-9a-f]{128}$").test(input.sig) || $report(_exceptionable, {
+    }), "string" === typeof input.sig && (RegExp("^[0-9a-f]{128}$").test(input.sig) || _report(_exceptionable, {
         path: _path + ".sig",
         expected: "string & Pattern<\"^[0-9a-f]{128}$\">",
         value: input.sig
-    })) || $report(_exceptionable, {
+    })) || _report(_exceptionable, {
         path: _path + ".sig",
         expected: "(string & Pattern<\"^[0-9a-f]{128}$\">)",
         value: input.sig
-    })].every((flag: boolean) => flag); const __is = (input: any): input is DeletionEvent => "object" === typeof input && null !== input && $io0(input); let errors: any; let $report: any; return (input: any): typia.IValidation<DeletionEvent> => {
+    })].every((flag: boolean) => flag); const __is = (input: any): input is DeletionEvent => "object" === typeof input && null !== input && _io0(input); let errors: any; let _report: any; return (input: any): import("typia").IValidation<DeletionEvent> => {
     if (false === __is(input)) {
         errors = [];
-        $report = (typia.createValidate as any).report(errors);
-        ((input: any, _path: string, _exceptionable: boolean = true) => ("object" === typeof input && null !== input || $report(true, {
+        _report = (__typia_transform__validateReport._validateReport as any)(errors);
+        ((input: any, _path: string, _exceptionable: boolean = true) => ("object" === typeof input && null !== input || _report(true, {
             path: _path + "",
             expected: "DeletionEvent",
             value: input
-        })) && $vo0(input, _path + "", true) || $report(true, {
+        })) && _vo0(input, _path + "", true) || _report(true, {
             path: _path + "",
             expected: "DeletionEvent",
             value: input
         }))(input, "$input", true);
         const success = 0 === errors.length;
-        return {
+        return success ? {
+            success,
+            data: input
+        } : {
             success,
             errors,
-            data: success ? input : undefined
+            data: input
         } as any;
     }
     return {
         success: true,
-        errors: [],
         data: input
     } as any;
 }; })();

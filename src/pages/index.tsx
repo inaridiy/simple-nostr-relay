@@ -65,7 +65,7 @@ export const IndexPage = (totalEvents: number, totalIndexedTags: number, recentE
 
           <h2>Quickstart</h2>
           <pre>
-            <code>pnpm install # Install dependencies pnpm migrate # Create database pnpm run dev # Start the relay</code>
+            <code>pnpm install # Install dependencies pnpm migrate # Create database pnpm run dev # Build and start with rayon-ts</code>
           </pre>
 
           <h2>License</h2>

@@ -1,7 +1,7 @@
 import * as schema from "@/database";
 import { isEventMatchSomeFilters } from "@/nostr/isEventMatchSomeFilters";
 import { toErrorReason } from "@/nostr/toErrorReason";
-import { verifyEvent } from "@/nostr/verifyEvent";
+import { verifyEventBatched } from "@/nostr/verifyEventBatched";
 import { createRepository } from "@/repository";
 import type { ClientToRelayPayload, Event, RelayToClientPayload, SubscriptionFilter } from "@/types/core";
 import type { RelayInfomaion } from "@/types/nip11";
@@ -72,10 +72,10 @@ const broadcastEvent = (event: Event) => {
 
 const processEvent = async (ws: WSContext, _connectionId: string, payload: ClientToRelayPayload<"EVENT">) => {
   const [_, event] = payload;
-  const isValid = verifyEvent(event, { enableNIP26 });
-  if (!isValid) return wsSendPayload(ws, ["OK", event.id, false, "invalid: event id or signature is invalid"]);
-
   try {
+    const isValid = await verifyEventBatched(event, { enableNIP26 });
+    if (!isValid) return wsSendPayload(ws, ["OK", event.id, false, "invalid: event id or signature is invalid"]);
+
     const isReplaceable = isReplaceableEvent(event);
     const isParameterizedReplaceable = isParameterizedReplaceableEvent(event);
     if (isReplaceable || isParameterizedReplaceable || event.kind === 5) {
